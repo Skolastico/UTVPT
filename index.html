@@ -65,7 +65,7 @@
     <!-- TELA DE UPLOAD -->
     <div id="uploadSection" class="fixed inset-0 z-50 flex items-center justify-center bg-dark overflow-hidden">
         
-        <!-- NOVA IMAGEM DE FUNDO GEAR 5 COM AJUSTES -->
+        <!-- IMAGEM DE FUNDO GEAR 5 -->
         <div class="absolute inset-0 z-0 select-none pointer-events-none">
             <img src="https://4kwallpapers.com/images/wallpapers/gear-5-monkey-d-6001x3841-17522.jpg" 
                  class="w-full h-full object-cover opacity-15 blur-[6px] grayscale-[30%] scale-110 transform" 
@@ -201,7 +201,7 @@
         </main>
 
         <footer class="border-t border-gray-800 py-6 text-center text-gray-600 text-xs mt-auto">
-            <p>Leitor de Excel Standalone • Dashboard v4.2 • Desenvolvido para Underground TV PT</p>
+            <p>Leitor de Excel Standalone • Dashboard v4.5 • Desenvolvido para Underground TV PT</p>
         </footer>
     </div>
 
@@ -344,11 +344,11 @@
                                 <li><span class="text-white">SFVIP Player:</span> O mais leve e rápido. Basta colar o Host e as credenciais.</li>
                                 <li>
                                     <span class="text-white font-bold">IPTVnator:</span> Interface moderna e multiplataforma.
-                                    <a href="https://github.com/4gray/iptvnator" target="_blank" class="block text-accent hover:underline mt-1"><i class="fa-brands fa-github"></i> Download GitHub</a>
+                                    <a href="https://github.com/4gray/iptvnator" target="_blank" class="block text-accent hover:underline mt-1"><i class="fa-brands fa-github"></i> Ver no GitHub</a>
                                 </li>
                                 <li>
                                     <span class="text-white font-bold">Open TV:</span> Player open-source com suporte Xtream.
-                                    <a href="https://github.com/Fredolx/open-tv" target="_blank" class="block text-accent hover:underline mt-1"><i class="fa-brands fa-github"></i> Download GitHub</a>
+                                    <a href="https://github.com/Fredolx/open-tv" target="_blank" class="block text-accent hover:underline mt-1"><i class="fa-brands fa-github"></i> Ver no GitHub</a>
                                 </li>
                             </ul>
                         </div>
@@ -514,9 +514,9 @@
                 const user = (acc.Username || '').toString().toLowerCase();
                 const mac = (acc.MAC || '').toLowerCase();
                 const groups = (acc['Grupos Live'] || '').toLowerCase();
-                const note = (acc.Tipo || '').toLowerCase();
                 const matchesSearch = host.includes(term) || user.includes(term) || mac.includes(term) || groups.includes(term);
                 if (!matchesSearch) return false;
+                const note = (acc.Tipo || '').toLowerCase();
                 const isMac = note.includes('mac') || note.includes('stalker');
                 if (currentFilter === 'xtream' && isMac) return false;
                 if (currentFilter === 'mac' && !isMac) return false;
@@ -575,28 +575,11 @@
             document.getElementById('btnNext').disabled = currentPage === maxPage || total === 0;
         }
 
-        // --- TUTORIAL MODAL ---
-        function openTutorialModal() {
-            const modal = document.getElementById('tutorialModal');
-            document.body.style.overflow = 'hidden';
-            modal.classList.remove('hidden');
-            setTimeout(() => { modal.classList.remove('opacity-0'); document.getElementById('tutorialContent').classList.add('scale-100'); }, 10);
-        }
-
-        function closeTutorialModal() {
-            const modal = document.getElementById('tutorialModal');
-            modal.classList.add('opacity-0');
-            document.getElementById('tutorialContent').classList.remove('scale-100');
-            setTimeout(() => { modal.classList.add('hidden'); document.body.style.overflow = ''; }, 300);
-        }
-
-        // --- ACCOUNT MODAL ---
         function openModal(index) {
             currentAccountIndex = index;
             const acc = allAccounts[index];
             const isMac = (acc.Tipo || '').toLowerCase().includes('mac');
             const modal = document.getElementById('detailsModal');
-
             document.body.style.overflow = 'hidden';
             document.getElementById('modalTitle').innerText = (acc.Host && acc.Host.startsWith('http')) ? new URL(acc.Host).hostname : acc.Host;
             document.getElementById('modalHost').value = acc.Host || '';
@@ -605,10 +588,8 @@
             document.getElementById('modalExp').innerText = formatDate(acc.Validade) || 'Indefinido';
             document.getElementById('btnCheckLive').classList.remove('hidden');
             document.getElementById('liveResult').classList.add('hidden');
-            
             const groupsContainer = document.getElementById('modalGroupsContainer');
             groupsContainer.innerHTML = '';
-            
             if (isMac) {
                 document.getElementById('macSection').classList.remove('hidden');
                 document.getElementById('modalMac').value = acc.MAC || '';
@@ -621,7 +602,6 @@
                 document.getElementById('m3uSection').classList.remove('hidden');
                 let h = acc.Host.startsWith('http') ? acc.Host : 'http://' + acc.Host;
                 document.getElementById('modalM3u').value = `${h}/get.php?username=${acc.Username}&password=${acc.Password}&type=m3u_plus&output=ts`;
-
                 const gruposStr = acc['Grupos Live'] || '';
                 if (gruposStr && gruposStr !== 'Nenhum grupo encontrado') {
                     const lista = gruposStr.split(',').map(g => g.trim()).filter(g => g);
@@ -632,41 +612,63 @@
                         badge.onclick = () => { document.getElementById('searchInput').value = g; renderCards(g); closeModal(); };
                         groupsContainer.appendChild(badge);
                     });
-                } else {
-                    groupsContainer.innerHTML = '<span class="text-xs text-gray-500 italic p-1">Grupos não catalogados</span>';
-                }
+                } else { groupsContainer.innerHTML = '<span class="text-xs text-gray-500 italic p-1">Grupos não catalogados</span>'; }
             }
-
             modal.classList.remove('hidden');
             setTimeout(() => { modal.classList.remove('opacity-0'); document.getElementById('modalContent').classList.add('scale-100'); }, 10);
         }
 
+        // --- SISTEMA DE VERIFICAÇÃO COM PROXY FALLBACK ---
         async function checkLiveConnectionsInModal() {
             const btn = document.getElementById('btnCheckLive');
             const resBox = document.getElementById('liveResult');
             const resText = document.getElementById('liveResultText');
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
             btn.disabled = true;
+
             const acc = allAccounts[currentAccountIndex];
             const host = acc.Host.startsWith('http') ? acc.Host : 'http://' + acc.Host;
-            const url = `${host}/player_api.php?username=${acc.Username}&password=${acc.Password}`;
-            try {
-                const response = await fetch(url);
-                const data = await response.json();
-                if (data.user_info) {
-                    const active = data.user_info.active_cons || 0;
-                    const max = data.user_info.max_connections || 0;
-                    btn.classList.add('hidden');
-                    resBox.classList.remove('hidden');
-                    resText.innerText = `${active} / ${max}`;
-                    resBox.className = `w-full bg-dark border ${active >= max && max != 0 ? 'border-red-500 text-red-400' : 'border-green-500 text-green-400'} rounded-lg px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 h-[42px]`;
-                }
-            } catch (e) {
+            const apiUrl = `${host}/player_api.php?username=${acc.Username}&password=${acc.Password}`;
+
+            const proxies = [
+                (url) => url,
+                (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                (url) => `https://thingproxy.freeboard.io/fetch/${url}`
+            ];
+
+            let success = false;
+            for (let i = 0; i < proxies.length; i++) {
+                try {
+                    const finalUrl = proxies[i](apiUrl);
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+                    const response = await fetch(finalUrl, { signal: controller.signal });
+                    const data = await response.json();
+                    clearTimeout(timeoutId);
+
+                    if (data.user_info) {
+                        const active = data.user_info.active_cons || 0;
+                        const max = data.user_info.max_connections || 0;
+                        btn.classList.add('hidden');
+                        resBox.classList.remove('hidden');
+                        resText.innerText = `${active} / ${max}`;
+                        resBox.className = `w-full bg-dark border ${active >= max && max != 0 ? 'border-red-500 text-red-400' : 'border-green-500 text-green-400'} rounded-lg px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 h-[42px]`;
+                        success = true;
+                        break;
+                    }
+                } catch (e) {}
+            }
+
+            if (!success) {
                 btn.classList.add('hidden');
                 resBox.classList.remove('hidden');
-                resText.innerText = "Erro CORS/Net";
+                resText.innerText = "Erro CORS/Proxy";
                 resBox.className = "w-full bg-dark border border-orange-500 text-orange-400 rounded-lg px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 h-[42px]";
-            } finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Verificar Agora'; }
+            }
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Verificar Agora';
         }
 
         function closeModal() {
@@ -676,12 +678,9 @@
             setTimeout(() => { modal.classList.add('hidden'); document.body.style.overflow = ''; }, 300);
         }
 
-        // FECHAR AO CLICAR FORA
         window.onclick = function(event) {
-            const dModal = document.getElementById('detailsModal');
-            const tModal = document.getElementById('tutorialModal');
-            if (event.target == dModal) closeModal();
-            if (event.target == tModal) closeTutorialModal();
+            if (event.target == document.getElementById('detailsModal')) closeModal();
+            if (event.target == document.getElementById('tutorialModal')) closeTutorialModal();
         }
 
         function formatDate(d) {
@@ -702,14 +701,25 @@
             setTimeout(() => t.classList.add('translate-y-32'), 3000);
         }
 
+        function openTutorialModal() {
+            const modal = document.getElementById('tutorialModal');
+            document.body.style.overflow = 'hidden';
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); document.getElementById('tutorialContent').classList.add('scale-100'); }, 10);
+        }
+
+        function closeTutorialModal() {
+            const modal = document.getElementById('tutorialModal');
+            modal.classList.add('opacity-0');
+            document.getElementById('tutorialContent').classList.remove('scale-100');
+            setTimeout(() => { modal.classList.add('hidden'); document.body.style.overflow = ''; }, 300);
+        }
+
         function downloadPlaylistFromModal() {
             const acc = allAccounts[currentAccountIndex];
             const host = acc.Host.startsWith('http') ? acc.Host : 'http://' + acc.Host;
             const url = `${host}/get.php?username=${acc.Username}&password=${acc.Password}&type=m3u_plus&output=ts`;
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `playlist_${acc.Username}.m3u`;
-            a.click();
+            const a = document.createElement('a'); a.href = url; a.download = `playlist_${acc.Username}.m3u`; a.click();
         }
 
         function openPlaylistLink() { window.open(document.getElementById('modalM3u').value, '_blank'); }
