@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Underground TV PT</title>
+    <!-- Favicon -->
+    <link rel="icon" href="https://framagit.org/fiat-tux/hat-softwares/lufi/-/raw/master/themes/default/public/img/lufi.png">
+    
+    <!-- Bibliotecas Externas (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Configuração Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: '#0f172a',
+                        card: '#1e293b',
+                        accent: '#3b82f6', 
+                        'op-yellow': '#FFD700', // Amarelo One Piece (Gold)
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444'
+                    },
+                    animation: {
+                        'float': 'float 3s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; }
+        .glass-effect { background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px); }
+        .file-drop-zone { border: 2px dashed #475569; transition: all 0.3s ease; }
+        .file-drop-zone:hover, .file-drop-zone.dragover { border-color: #FFD700; background-color: rgba(255, 215, 0, 0.1); }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .card-animate { animation: fadeIn 0.3s ease-out forwards; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        
+        /* Blur background when modal is open */
+        .modal-open #mainDashboard { filter: blur(4px); pointer-events: none; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- TELA DE UPLOAD -->
+    <div id="uploadSection" class="fixed inset-0 z-50 flex items-center justify-center bg-dark overflow-hidden">
+        
+        <!-- NOVA IMAGEM DE FUNDO GEAR 5 COM AJUSTES -->
+        <div class="absolute inset-0 z-0 select-none pointer-events-none">
+            <img src="https://4kwallpapers.com/images/wallpapers/gear-5-monkey-d-6001x3841-17522.jpg" 
+                 class="w-full h-full object-cover opacity-15 blur-[6px] grayscale-[30%] scale-110 transform" 
+                 alt="Luffy Gear 5 Background">
+            <div class="absolute inset-0 bg-gradient-to-t from-dark via-dark/90 to-transparent"></div>
+        </div>
+
+        <div class="max-w-xl w-full text-center space-y-6 relative z-10 p-4">
+            <div class="mb-4">
+                <img src="https://framagit.org/fiat-tux/hat-softwares/lufi/-/raw/master/themes/default/public/img/lufi.png" 
+                     class="w-32 h-32 mx-auto mb-4 animate-float drop-shadow-[0_0_15px_rgba(255,215,0,0.3)] object-contain" 
+                     alt="Lufi Logo">
+                <h1 class="text-4xl font-extrabold tracking-tight text-white drop-shadow-lg">
+                    Underground <span class="text-op-yellow">TV PT</span>
+                </h1>
+                <p class="text-gray-300 mt-2 font-medium drop-shadow-md">Dashboard de Gestão de Contas</p>
+            </div>
+
+            <div class="file-drop-zone bg-card/60 backdrop-blur-md p-8 rounded-2xl cursor-pointer relative group border-gray-600 hover:border-op-yellow shadow-2xl transition-all" id="dropZone">
+                <input type="file" id="fileInput" accept=".xlsx, .xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                <div class="space-y-3 pointer-events-none">
+                    <div class="w-14 h-14 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto group-hover:bg-op-yellow group-hover:text-dark transition-colors border border-gray-600">
+                        <i class="fa-solid fa-file-excel text-2xl text-white group-hover:text-dark"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-white">Carregar ficheiro Excel</h3>
+                        <p class="text-xs text-gray-300 mt-1">Arrasta ou clica para selecionar</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4 text-gray-400 text-sm">
+                <div class="h-px bg-gray-600 flex-grow"></div>
+                <span>OU</span>
+                <div class="h-px bg-gray-600 flex-grow"></div>
+            </div>
+
+            <div class="bg-card/60 backdrop-blur-md p-4 rounded-2xl border border-gray-600 shadow-xl">
+                <label class="block text-left text-xs text-gray-300 mb-2 font-bold ml-1"><i class="fa-brands fa-google-drive text-green-400 mr-1"></i> Importar do Google Sheets</label>
+                <div class="flex gap-2">
+                    <input type="text" id="gSheetInput" placeholder="Cola o link do Google Sheets aqui..." 
+                        class="flex-grow bg-dark/80 border border-gray-600 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-op-yellow transition-colors">
+                    <button onclick="loadFromGoogleSheets()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm transition-all shadow-lg hover:shadow-green-500/20">
+                        <i class="fa-solid fa-cloud-arrow-down"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button id="btnBackToDash" onclick="returnToDashboard()" class="hidden px-6 py-2 bg-gray-700/80 hover:bg-gray-600 text-white rounded-full transition-colors flex items-center gap-2 mx-auto backdrop-blur-sm">
+                <i class="fa-solid fa-arrow-left"></i> Voltar ao Dashboard
+            </button>
+            
+            <div id="loadingIndicator" class="hidden">
+                <i class="fa-solid fa-circle-notch fa-spin text-op-yellow text-3xl"></i>
+                <p class="mt-2 text-sm text-gray-300 font-bold">A processar tesouros...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="mainDashboard" class="hidden min-h-screen flex flex-col w-full relative z-20 bg-dark">
+        <!-- HEADER -->
+        <header class="sticky top-0 z-40 glass-effect border-b border-gray-700 shadow-lg">
+            <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3 w-full md:w-auto justify-between">
+                    <div class="flex items-center gap-3 cursor-pointer" onclick="resetApp()">
+                        <img src="https://framagit.org/fiat-tux/hat-softwares/lufi/-/raw/master/themes/default/public/img/lufi.png" class="w-8 h-8 object-contain">
+                        <h1 class="text-xl font-bold tracking-wider">Underground <span class="text-op-yellow">TV PT</span></h1>
+                    </div>
+                </div>
+
+                <!-- BARRA DE PESQUISA -->
+                <div class="relative w-full max-w-md">
+                    <input type="text" id="searchInput" placeholder="Pesquisar servidor, user ou grupo..." 
+                        class="w-full bg-gray-800 text-white rounded-full py-2 px-5 pl-10 focus:outline-none focus:ring-2 focus:ring-op-yellow border border-gray-700 shadow-inner">
+                    <i class="fa-solid fa-search absolute left-3.5 top-3 text-gray-400"></i>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button onclick="openTutorialModal()" class="bg-op-yellow text-dark px-4 py-1.5 rounded-full text-xs font-bold hover:bg-white transition-all shadow-lg flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info"></i> Guia de Apps
+                    </button>
+                    <div class="text-sm font-semibold bg-op-yellow/10 text-op-yellow px-4 py-1.5 rounded-full border border-op-yellow/20 hidden md:block">
+                        <span id="totalCount">0</span> Contas
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN GRID -->
+        <main class="container mx-auto px-4 py-8 flex-grow">
+            <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+                <div class="flex gap-2 overflow-x-auto pb-2 scroll-hide w-full sm:w-auto" id="typeFilters">
+                    <button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-op-yellow text-dark text-sm font-bold shadow-lg shadow-op-yellow/20" onclick="filterType('all', this)">Todos</button>
+                    <button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-gray-800 text-gray-400 hover:text-white text-sm font-medium border border-gray-700" onclick="filterType('xtream', this)">Xtream</button>
+                    <button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-gray-800 text-gray-400 hover:text-white text-sm font-medium border border-gray-700" onclick="filterType('mac', this)">Stalker / MAC</button>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <select id="itemsPerPageSelect" onchange="changeItemsPerPage(this.value)" class="bg-gray-800 text-gray-300 text-xs rounded-lg px-3 py-2 border border-gray-700 focus:outline-none">
+                        <option value="12">12 por página</option>
+                        <option value="24" selected>24 por página</option>
+                        <option value="48">48 por página</option>
+                        <option value="96">96 por página</option>
+                        <option value="10000">Todas</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="gridContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+            
+            <div id="noResults" class="hidden text-center py-20">
+                <i class="fa-solid fa-skull-crossbones text-6xl text-gray-700 mb-4 animate-pulse"></i>
+                <p class="text-gray-500 text-lg">Nenhum tesouro encontrado.</p>
+            </div>
+
+            <div id="paginationContainer" class="hidden mt-8 flex flex-col sm:flex-row justify-between items-center border-t border-gray-800 pt-6 gap-4">
+                <span class="text-sm text-gray-400">
+                    A mostrar <span id="pageStart" class="text-white font-bold">0</span> até <span id="pageEnd" class="text-white font-bold">0</span> de <span id="pageTotal" class="text-white font-bold">0</span> resultados
+                </span>
+                <div class="flex items-center gap-2">
+                    <button onclick="changePage(-1)" id="btnPrev" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg disabled:opacity-50 transition-colors">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <div class="px-4 py-2 bg-gray-800/50 rounded-lg text-sm text-gray-300">
+                        Página <span id="pageCurrent" class="text-white font-bold">1</span> de <span id="pageMax" class="font-bold">1</span>
+                    </div>
+                    <button onclick="changePage(1)" id="btnNext" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg disabled:opacity-50 transition-colors">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer class="border-t border-gray-800 py-6 text-center text-gray-600 text-xs mt-auto">
+            <p>Leitor de Excel Standalone • Dashboard v4.2 • Desenvolvido para Underground TV PT</p>
+        </footer>
+    </div>
+
+    <!-- MODAL DE DETALHES -->
+    <div id="detailsModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/90 backdrop-blur-md p-4 transition-all duration-300 opacity-0">
+        <div class="bg-card w-full max-w-lg rounded-2xl shadow-2xl border border-gray-700 transform transition-all scale-95 duration-300 overflow-hidden flex flex-col max-h-[90vh]" id="modalContent">
+            
+            <div class="bg-gradient-to-r from-gray-800 to-gray-900 p-6 border-b border-gray-700 flex justify-between items-center shrink-0">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2 truncate pr-4">
+                    <i class="fa-solid fa-server text-op-yellow"></i> 
+                    <span id="modalTitle" class="truncate">Detalhes</span>
+                </h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-white hover:bg-white/10 rounded-full p-1 w-8 h-8 flex items-center justify-center">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-5 overflow-y-auto custom-scrollbar">
+                
+                <div class="space-y-4">
+                    <div class="group">
+                        <label class="text-[10px] text-gray-400 uppercase font-bold tracking-wider ml-1 mb-1 block">Host URL</label>
+                        <div class="relative">
+                            <input type="text" id="modalHost" readonly class="w-full bg-dark border border-gray-700 rounded-lg pl-3 pr-10 py-2.5 text-sm text-gray-300 focus:outline-none font-mono">
+                            <button onclick="copyToClipboard('modalHost')" class="absolute right-1 top-1 bottom-1 w-8 flex items-center justify-center text-gray-400 hover:text-white rounded hover:bg-gray-700">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] text-gray-400 uppercase font-bold tracking-wider ml-1 mb-1 block">Username</label>
+                            <div class="relative">
+                                <input type="text" id="modalUser" readonly class="w-full bg-dark border border-gray-700 rounded-lg pl-3 pr-10 py-2.5 text-sm text-gray-300 focus:outline-none font-mono">
+                                <button onclick="copyToClipboard('modalUser')" class="absolute right-1 top-1 bottom-1 w-8 flex items-center justify-center text-gray-400 hover:text-white rounded hover:bg-gray-700">
+                                    <i class="fa-regular fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-400 uppercase font-bold tracking-wider ml-1 mb-1 block">Password</label>
+                            <div class="relative">
+                                <input type="text" id="modalPass" readonly class="w-full bg-dark border border-gray-700 rounded-lg pl-3 pr-10 py-2.5 text-sm text-gray-300 focus:outline-none font-mono">
+                                <button onclick="copyToClipboard('modalPass')" class="absolute right-1 top-1 bottom-1 w-8 flex items-center justify-center text-gray-400 hover:text-white rounded hover:bg-gray-700">
+                                    <i class="fa-regular fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="macSection" class="hidden">
+                        <label class="text-[10px] text-gray-400 uppercase font-bold tracking-wider ml-1 mb-1 block">Endereço MAC</label>
+                        <div class="relative">
+                            <input type="text" id="modalMac" readonly class="w-full bg-dark border border-op-yellow/30 rounded-lg pl-3 pr-10 py-2.5 text-sm text-op-yellow focus:outline-none font-mono shadow-[0_0_15px_rgba(255,215,0,0.1)]">
+                            <button onclick="copyToClipboard('modalMac')" class="absolute right-1 top-1 bottom-1 w-8 flex items-center justify-center text-op-yellow/70 hover:text-op-yellow rounded hover:bg-op-yellow/10 transition-all">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="groupsSection" class="pt-2">
+                        <label class="text-[10px] text-op-yellow uppercase font-bold tracking-wider ml-1 mb-2 block flex items-center gap-1">
+                            <i class="fa-solid fa-layer-group"></i> Grupos de Canais (Live)
+                        </label>
+                        <div id="modalGroupsContainer" class="bg-dark/50 border border-gray-700/50 rounded-xl p-3 min-h-[60px] max-h-[120px] overflow-y-auto custom-scrollbar flex flex-wrap gap-1.5">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] text-gray-400 uppercase font-bold tracking-wider ml-1 mb-1 block">Validade</label>
+                            <div class="flex items-center gap-2 bg-dark border border-gray-700 rounded-lg px-3 py-2.5 h-[42px]">
+                                <i class="fa-regular fa-calendar text-gray-500"></i>
+                                <span id="modalExp" class="text-sm text-gray-300 truncate"></span>
+                            </div>
+                        </div>
+                        
+                        <div id="liveCheckSection">
+                            <label class="text-[10px] text-gray-400 uppercase font-bold tracking-wider ml-1 mb-1 block">Conexões Ativas</label>
+                            <div class="relative">
+                                <button id="btnCheckLive" onclick="checkLiveConnectionsInModal()" class="w-full bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2.5 text-xs font-bold transition-all flex items-center justify-center gap-2 h-[42px]">
+                                    <i class="fa-solid fa-rotate"></i> Verificar Agora
+                                </button>
+                                <div id="liveResult" class="hidden w-full bg-dark border border-op-yellow/50 text-op-yellow rounded-lg px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 h-[42px] animate-pulse">
+                                    <i class="fa-solid fa-users"></i> <span id="liveResultText">...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="m3uSection" class="pt-4 border-t border-gray-700/50 mt-2">
+                         <label class="text-[10px] text-blue-400 uppercase font-bold tracking-wider ml-1 mb-1 block">Playlist Link (M3U Plus)</label>
+                         <div class="relative mb-3">
+                            <input type="text" id="modalM3u" readonly class="w-full bg-blue-900/10 border border-blue-500/30 rounded-lg pl-3 pr-10 py-2.5 text-xs text-blue-300 focus:outline-none font-mono">
+                            <button onclick="copyToClipboard('modalM3u')" class="absolute right-1 top-1 bottom-1 w-8 flex items-center justify-center text-blue-400 hover:text-white rounded hover:bg-blue-500/20">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="downloadPlaylistFromModal()" class="bg-accent hover:bg-blue-600 text-white py-2 rounded-lg shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 text-sm font-medium">
+                                <i class="fa-solid fa-download"></i> Download M3U
+                            </button>
+                            <button onclick="openPlaylistLink()" class="bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium">
+                                <i class="fa-solid fa-external-link-alt"></i> Abrir Link
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL GUIA DE APPS -->
+    <div id="tutorialModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/90 backdrop-blur-md p-4 transition-all duration-300 opacity-0">
+        <div class="bg-card w-full max-w-2xl rounded-2xl shadow-2xl border border-gray-700 transform transition-all scale-95 duration-300 overflow-hidden flex flex-col max-h-[85vh]" id="tutorialContent">
+            
+            <div class="bg-gradient-to-r from-op-yellow/20 to-gray-900 p-6 border-b border-gray-700 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-white flex items-center gap-3">
+                    <i class="fa-solid fa-circle-info text-op-yellow"></i> 
+                    Guia de Utilização e Apps
+                </h3>
+                <button onclick="closeTutorialModal()" class="text-gray-400 hover:text-white hover:bg-white/10 rounded-full p-1 w-8 h-8 flex items-center justify-center">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-8 overflow-y-auto custom-scrollbar">
+                
+                <!-- Secção XTREAM -->
+                <div class="space-y-4">
+                    <div class="flex items-center gap-2 text-blue-400 font-bold border-b border-blue-500/20 pb-2">
+                        <i class="fa-solid fa-user-circle"></i> Contas XTREAM
+                    </div>
+                    <p class="text-sm text-gray-300">Estas contas usam <span class="text-white font-bold">Host</span>, <span class="text-white font-bold">User</span> e <span class="text-white font-bold">Pass</span>.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-dark/40 p-4 rounded-xl border border-gray-700">
+                            <h4 class="text-xs font-bold text-op-yellow mb-2">Windows / PC</h4>
+                            <ul class="text-[11px] space-y-2 text-gray-400">
+                                <li><span class="text-white">SFVIP Player:</span> O mais leve e rápido. Basta colar o Host e as credenciais.</li>
+                                <li>
+                                    <span class="text-white font-bold">IPTVnator:</span> Interface moderna e multiplataforma.
+                                    <a href="https://github.com/4gray/iptvnator" target="_blank" class="block text-accent hover:underline mt-1"><i class="fa-brands fa-github"></i> Download GitHub</a>
+                                </li>
+                                <li>
+                                    <span class="text-white font-bold">Open TV:</span> Player open-source com suporte Xtream.
+                                    <a href="https://github.com/Fredolx/open-tv" target="_blank" class="block text-accent hover:underline mt-1"><i class="fa-brands fa-github"></i> Download GitHub</a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="bg-dark/40 p-4 rounded-xl border border-gray-700">
+                            <h4 class="text-xs font-bold text-op-yellow mb-2">Android / Smart TV</h4>
+                            <ul class="text-[11px] space-y-2 text-gray-400">
+                                <li><span class="text-white">OTT Navigator:</span> Altamente customizável. Perfeito para Xtream.</li>
+                                <li><span class="text-white">TiviMate:</span> A melhor interface estilo "Box de Operadora".</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Secção STALKER -->
+                <div class="space-y-4">
+                    <div class="flex items-center gap-2 text-op-yellow font-bold border-b border-op-yellow/20 pb-2">
+                        <i class="fa-solid fa-microchip"></i> Contas STALKER / MAC
+                    </div>
+                    <p class="text-sm text-gray-300">Estas contas usam apenas <span class="text-white font-bold">Portal URL</span> e um <span class="text-white font-bold">Endereço MAC</span>.</p>
+                    <div class="bg-dark/40 p-4 rounded-xl border border-gray-700">
+                        <h4 class="text-xs font-bold text-op-yellow mb-2">Como Configurar</h4>
+                        <p class="text-[11px] text-gray-400 leading-relaxed">
+                            No seu Player (SFVIP ou OTT Navigator), escolha a opção <span class="text-white">"Stalker Portal"</span> ou <span class="text-white">"MAG Device"</span>. 
+                            Introduza o Host no campo Portal e configure o MAC ID exatamente como aparece no dashboard. Não é necessário utilizador ou password.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Dica Rápida -->
+                <div class="bg-accent/10 border border-accent/30 p-4 rounded-xl flex gap-4 items-start">
+                    <i class="fa-solid fa-lightbulb text-accent text-xl mt-1"></i>
+                    <div>
+                        <h4 class="text-sm font-bold text-white mb-1">Dica de Performance</h4>
+                        <p class="text-xs text-gray-400 leading-relaxed">
+                            Muitos servidores bloqueiam conexões se o Player tentar atualizar tudo ao mesmo tempo. No dashboard, use a "Verificação Rápida" para confirmar se a conta está online antes de configurar no seu dispositivo.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+            
+            <div class="p-4 bg-gray-900/50 border-t border-gray-800 text-center">
+                <button onclick="closeTutorialModal()" class="text-xs font-bold text-gray-400 hover:text-white transition-colors">Fechar Guia</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-32 transition-all duration-300 bg-gray-800 border-l-4 border-green-500 text-white px-6 py-4 rounded shadow-2xl flex items-center gap-4">
+        <div class="bg-green-500/20 p-2 rounded-full text-green-400">
+            <i class="fa-solid fa-check"></i>
+        </div>
+        <div>
+            <h4 id="toastTitle" class="font-bold text-sm">Sucesso!</h4>
+            <p id="toastMessage" class="text-xs text-gray-400"></p>
+        </div>
+    </div>
+
+    <script>
+        let allAccounts = [];
+        let filteredAccounts = [];
+        let currentFilter = 'all';
+        let currentAccountIndex = -1;
+        let currentPage = 1;
+        let itemsPerPage = 24;
+        const DEFAULT_FILENAME = 'Resultados_Finais.xlsx';
+
+        window.onload = async () => {
+            try {
+                const response = await fetch(DEFAULT_FILENAME);
+                if (response.ok) processFile(await response.blob());
+            } catch (e) {}
+        };
+
+        const fileInput = document.getElementById('fileInput');
+        fileInput.addEventListener('change', (e) => processFile(e.target.files[0]));
+
+        const dropZone = document.getElementById('dropZone');
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); processFile(e.dataTransfer.files[0]); });
+
+        async function loadFromGoogleSheets() {
+            const input = document.getElementById('gSheetInput');
+            let url = input.value.trim();
+            if (!url) { showToast("Insere um link válido.", true); return; }
+            const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            if (match && match[1]) url = 'https://corsproxy.io/?' + encodeURIComponent(`https://docs.google.com/spreadsheets/d/${match[1]}/export?format=xlsx`);
+            else { showToast("Link inválido.", true); return; }
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error();
+                processFile(await response.blob());
+                input.value = ''; 
+                showToast("Google Sheet carregado!", false);
+            } catch (error) { showToast("Erro no carregamento.", true); }
+            finally { document.getElementById('loadingIndicator').classList.add('hidden'); }
+        }
+
+        function processFile(file) {
+            if(!file) return;
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                    allAccounts = [];
+                    workbook.SheetNames.forEach(sheet => {
+                        XLSX.utils.sheet_to_json(workbook.Sheets[sheet]).forEach(row => {
+                            if (row.Host || row.Username || row.MAC) allAccounts.push(row);
+                        });
+                    });
+                    allAccounts.sort((a, b) => {
+                        const getTs = (v) => v ? new Date(v).getTime() : 0;
+                        return getTs(b.Validade) - getTs(a.Validade);
+                    });
+                    filteredAccounts = [...allAccounts];
+                    showDashboard();
+                } catch (err) { showToast("Erro ao ler Excel", true); }
+                finally { document.getElementById('loadingIndicator').classList.add('hidden'); }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function showDashboard() {
+            document.getElementById('uploadSection').classList.add('hidden');
+            document.getElementById('mainDashboard').classList.remove('hidden');
+            document.getElementById('btnBackToDash').classList.remove('hidden');
+            renderCards();
+        }
+
+        function resetApp() {
+            document.getElementById('mainDashboard').classList.add('hidden');
+            document.getElementById('uploadSection').classList.remove('hidden');
+        }
+
+        function returnToDashboard() {
+            document.getElementById('uploadSection').classList.add('hidden');
+            document.getElementById('mainDashboard').classList.remove('hidden');
+        }
+
+        function filterType(type, btn) {
+            currentFilter = type;
+            document.querySelectorAll('#typeFilters button').forEach(b => b.className = "whitespace-nowrap px-4 py-1.5 rounded-full bg-gray-800 text-gray-400 hover:text-white text-sm font-medium border border-gray-700 cursor-pointer transition-all");
+            btn.className = "whitespace-nowrap px-4 py-1.5 rounded-full bg-op-yellow text-dark text-sm font-bold shadow-lg shadow-op-yellow/20 transition-all";
+            currentPage = 1;
+            renderCards(document.getElementById('searchInput').value);
+        }
+
+        function changeItemsPerPage(val) { itemsPerPage = parseInt(val); currentPage = 1; renderCards(document.getElementById('searchInput').value); }
+        function changePage(delta) { 
+            currentPage += delta; 
+            renderGridOnly(); 
+            updatePaginationControls();
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+
+        function renderCards(term = '') {
+            term = term.toLowerCase();
+            filteredAccounts = allAccounts.filter(acc => {
+                const host = (acc.Host || '').toLowerCase();
+                const user = (acc.Username || '').toString().toLowerCase();
+                const mac = (acc.MAC || '').toLowerCase();
+                const groups = (acc['Grupos Live'] || '').toLowerCase();
+                const note = (acc.Tipo || '').toLowerCase();
+                const matchesSearch = host.includes(term) || user.includes(term) || mac.includes(term) || groups.includes(term);
+                if (!matchesSearch) return false;
+                const isMac = note.includes('mac') || note.includes('stalker');
+                if (currentFilter === 'xtream' && isMac) return false;
+                if (currentFilter === 'mac' && !isMac) return false;
+                return true;
+            });
+            document.getElementById('totalCount').innerText = filteredAccounts.length;
+            document.getElementById('noResults').classList.toggle('hidden', filteredAccounts.length > 0);
+            document.getElementById('paginationContainer').classList.toggle('hidden', filteredAccounts.length === 0);
+            renderGridOnly();
+            updatePaginationControls();
+        }
+
+        function renderGridOnly() {
+            const grid = document.getElementById('gridContainer');
+            grid.innerHTML = '';
+            const start = (currentPage - 1) * itemsPerPage;
+            filteredAccounts.slice(start, start + itemsPerPage).forEach((acc) => {
+                const originalIndex = allAccounts.indexOf(acc);
+                const isMac = (acc.Tipo || '').toLowerCase().includes('mac') || (acc.Tipo || '').toLowerCase().includes('stalker');
+                const serverName = (acc.Host && acc.Host.startsWith('http')) ? new URL(acc.Host).hostname : (acc.Host || 'Servidor');
+                const card = document.createElement('div');
+                card.className = "bg-card rounded-xl border border-gray-700/50 hover:shadow-xl transition-all flex flex-col justify-between overflow-hidden card-animate group h-full";
+                card.innerHTML = `
+                    <div class="p-5 cursor-pointer flex-grow" onclick="openModal(${originalIndex})">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center border border-gray-700">
+                                <i class="fa-solid ${isMac ? 'fa-microchip text-op-yellow' : 'fa-user-circle text-blue-400'} text-lg"></i>
+                            </div>
+                            <span class="text-[10px] font-bold tracking-wider text-gray-500 bg-gray-900/50 px-2 py-1 rounded border border-gray-800">${isMac ? 'MAC' : 'XTREAM'}</span>
+                        </div>
+                        <h3 class="font-bold text-gray-100 mb-1 truncate text-base">${serverName}</h3>
+                        <p class="text-xs text-gray-400 truncate font-mono">${isMac ? 'MAC: ' + (acc.MAC || 'N/A') : 'User: ' + (acc.Username || 'N/A')}</p>
+                    </div>
+                    <div class="bg-gray-800/50 px-5 py-3 border-t border-gray-700/50 flex justify-between items-center">
+                        <div class="text-[10px] ${acc.Validade ? 'text-green-400' : 'text-gray-500'} font-bold">
+                            <i class="fa-regular fa-calendar-check"></i> ${acc.Validade ? formatDate(acc.Validade) : 'S/ Data'}
+                        </div>
+                        <button onclick="openModal(${originalIndex})" class="text-op-yellow text-xs font-bold hover:underline">Detalhes</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function updatePaginationControls() {
+            const total = filteredAccounts.length;
+            const start = (currentPage - 1) * itemsPerPage + 1;
+            const end = Math.min(currentPage * itemsPerPage, total);
+            const maxPage = Math.ceil(total / itemsPerPage) || 1;
+            document.getElementById('pageStart').innerText = total === 0 ? 0 : start;
+            document.getElementById('pageEnd').innerText = end;
+            document.getElementById('pageTotal').innerText = total;
+            document.getElementById('pageCurrent').innerText = currentPage;
+            document.getElementById('pageMax').innerText = maxPage;
+            document.getElementById('btnPrev').disabled = currentPage === 1;
+            document.getElementById('btnNext').disabled = currentPage === maxPage || total === 0;
+        }
+
+        // --- TUTORIAL MODAL ---
+        function openTutorialModal() {
+            const modal = document.getElementById('tutorialModal');
+            document.body.style.overflow = 'hidden';
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); document.getElementById('tutorialContent').classList.add('scale-100'); }, 10);
+        }
+
+        function closeTutorialModal() {
+            const modal = document.getElementById('tutorialModal');
+            modal.classList.add('opacity-0');
+            document.getElementById('tutorialContent').classList.remove('scale-100');
+            setTimeout(() => { modal.classList.add('hidden'); document.body.style.overflow = ''; }, 300);
+        }
+
+        // --- ACCOUNT MODAL ---
+        function openModal(index) {
+            currentAccountIndex = index;
+            const acc = allAccounts[index];
+            const isMac = (acc.Tipo || '').toLowerCase().includes('mac');
+            const modal = document.getElementById('detailsModal');
+
+            document.body.style.overflow = 'hidden';
+            document.getElementById('modalTitle').innerText = (acc.Host && acc.Host.startsWith('http')) ? new URL(acc.Host).hostname : acc.Host;
+            document.getElementById('modalHost').value = acc.Host || '';
+            document.getElementById('modalUser').value = acc.Username || '';
+            document.getElementById('modalPass').value = acc.Password || '';
+            document.getElementById('modalExp').innerText = formatDate(acc.Validade) || 'Indefinido';
+            document.getElementById('btnCheckLive').classList.remove('hidden');
+            document.getElementById('liveResult').classList.add('hidden');
+            
+            const groupsContainer = document.getElementById('modalGroupsContainer');
+            groupsContainer.innerHTML = '';
+            
+            if (isMac) {
+                document.getElementById('macSection').classList.remove('hidden');
+                document.getElementById('modalMac').value = acc.MAC || '';
+                document.getElementById('liveCheckSection').classList.add('hidden');
+                document.getElementById('m3uSection').classList.add('hidden');
+                groupsContainer.innerHTML = '<span class="text-xs text-gray-500 italic p-1">Conteúdo oculto em Stalker</span>';
+            } else {
+                document.getElementById('macSection').classList.add('hidden');
+                document.getElementById('liveCheckSection').classList.remove('hidden');
+                document.getElementById('m3uSection').classList.remove('hidden');
+                let h = acc.Host.startsWith('http') ? acc.Host : 'http://' + acc.Host;
+                document.getElementById('modalM3u').value = `${h}/get.php?username=${acc.Username}&password=${acc.Password}&type=m3u_plus&output=ts`;
+
+                const gruposStr = acc['Grupos Live'] || '';
+                if (gruposStr && gruposStr !== 'Nenhum grupo encontrado') {
+                    const lista = gruposStr.split(',').map(g => g.trim()).filter(g => g);
+                    lista.forEach(g => {
+                        const badge = document.createElement('span');
+                        badge.className = "px-2 py-0.5 bg-op-yellow/10 border border-op-yellow/30 text-op-yellow text-[10px] rounded-md font-medium uppercase tracking-tight cursor-help hover:bg-op-yellow hover:text-dark transition-all";
+                        badge.innerText = g;
+                        badge.onclick = () => { document.getElementById('searchInput').value = g; renderCards(g); closeModal(); };
+                        groupsContainer.appendChild(badge);
+                    });
+                } else {
+                    groupsContainer.innerHTML = '<span class="text-xs text-gray-500 italic p-1">Grupos não catalogados</span>';
+                }
+            }
+
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); document.getElementById('modalContent').classList.add('scale-100'); }, 10);
+        }
+
+        async function checkLiveConnectionsInModal() {
+            const btn = document.getElementById('btnCheckLive');
+            const resBox = document.getElementById('liveResult');
+            const resText = document.getElementById('liveResultText');
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+            btn.disabled = true;
+            const acc = allAccounts[currentAccountIndex];
+            const host = acc.Host.startsWith('http') ? acc.Host : 'http://' + acc.Host;
+            const url = `${host}/player_api.php?username=${acc.Username}&password=${acc.Password}`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                if (data.user_info) {
+                    const active = data.user_info.active_cons || 0;
+                    const max = data.user_info.max_connections || 0;
+                    btn.classList.add('hidden');
+                    resBox.classList.remove('hidden');
+                    resText.innerText = `${active} / ${max}`;
+                    resBox.className = `w-full bg-dark border ${active >= max && max != 0 ? 'border-red-500 text-red-400' : 'border-green-500 text-green-400'} rounded-lg px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 h-[42px]`;
+                }
+            } catch (e) {
+                btn.classList.add('hidden');
+                resBox.classList.remove('hidden');
+                resText.innerText = "Erro CORS/Net";
+                resBox.className = "w-full bg-dark border border-orange-500 text-orange-400 rounded-lg px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 h-[42px]";
+            } finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Verificar Agora'; }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('detailsModal');
+            modal.classList.add('opacity-0');
+            document.getElementById('modalContent').classList.remove('scale-100');
+            setTimeout(() => { modal.classList.add('hidden'); document.body.style.overflow = ''; }, 300);
+        }
+
+        // FECHAR AO CLICAR FORA
+        window.onclick = function(event) {
+            const dModal = document.getElementById('detailsModal');
+            const tModal = document.getElementById('tutorialModal');
+            if (event.target == dModal) closeModal();
+            if (event.target == tModal) closeTutorialModal();
+        }
+
+        function formatDate(d) {
+            if (!d) return '';
+            try { return (d instanceof Date) ? d.toLocaleDateString('pt-PT') : d.toString().split(' ')[0]; } catch(e) { return d; }
+        }
+
+        function copyToClipboard(id) {
+            const el = document.getElementById(id);
+            el.select(); navigator.clipboard.writeText(el.value);
+            showToast("Copiado!", false);
+        }
+
+        function showToast(msg, isError) {
+            const t = document.getElementById('toast');
+            document.getElementById('toastMessage').innerText = msg;
+            t.classList.remove('translate-y-32');
+            setTimeout(() => t.classList.add('translate-y-32'), 3000);
+        }
+
+        function downloadPlaylistFromModal() {
+            const acc = allAccounts[currentAccountIndex];
+            const host = acc.Host.startsWith('http') ? acc.Host : 'http://' + acc.Host;
+            const url = `${host}/get.php?username=${acc.Username}&password=${acc.Password}&type=m3u_plus&output=ts`;
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `playlist_${acc.Username}.m3u`;
+            a.click();
+        }
+
+        function openPlaylistLink() { window.open(document.getElementById('modalM3u').value, '_blank'); }
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            currentPage = 1;
+            renderCards(e.target.value);
+        });
+    </script>
+</body>
+</html>
