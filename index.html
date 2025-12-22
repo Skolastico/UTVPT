@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Underground TV PT - Speed Demon</title>
+    <title>Underground TV PT - Flash Mode</title>
     <!-- Favicon -->
     <link rel="icon" href="https://framagit.org/fiat-tux/hat-softwares/lufi/-/raw/master/themes/default/public/img/lufi.png">
     
@@ -21,7 +21,7 @@
                         dark: '#0f172a',
                         card: '#1e293b',
                         accent: '#3b82f6', 
-                        'op-yellow': '#FFD700', // Amarelo One Piece (Gold)
+                        'op-yellow': '#FFD700', 
                         success: '#10b981',
                         warning: '#f59e0b',
                         danger: '#ef4444'
@@ -56,7 +56,6 @@
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
         
-        /* Blur background when modal is open */
         .modal-open #mainDashboard { filter: blur(4px); pointer-events: none; }
     </style>
 </head>
@@ -65,11 +64,11 @@
     <!-- TELA DE UPLOAD -->
     <div id="uploadSection" class="fixed inset-0 z-50 flex items-center justify-center bg-dark overflow-hidden">
         
-        <!-- IMAGEM DE FUNDO GEAR 5 -->
+        <!-- IMAGEM DE FUNDO -->
         <div class="absolute inset-0 z-0 select-none pointer-events-none">
             <img src="https://4kwallpapers.com/images/wallpapers/gear-5-monkey-d-6001x3841-17522.jpg" 
                  class="w-full h-full object-cover opacity-15 blur-[6px] grayscale-[30%] scale-110 transform" 
-                 alt="Luffy Gear 5 Background">
+                 alt="Background">
             <div class="absolute inset-0 bg-gradient-to-t from-dark via-dark/90 to-transparent"></div>
         </div>
 
@@ -77,7 +76,7 @@
             <div class="mb-4">
                 <img src="https://framagit.org/fiat-tux/hat-softwares/lufi/-/raw/master/themes/default/public/img/lufi.png" 
                      class="w-32 h-32 mx-auto mb-4 animate-float drop-shadow-[0_0_15px_rgba(255,215,0,0.3)] object-contain" 
-                     alt="Lufi Logo">
+                     alt="Logo">
                 <h1 class="text-4xl font-extrabold tracking-tight text-white drop-shadow-lg">
                     Underground <span class="text-op-yellow">TV PT</span>
                 </h1>
@@ -85,14 +84,16 @@
             </div>
 
             <div class="file-drop-zone bg-card/60 backdrop-blur-md p-8 rounded-2xl cursor-pointer relative group border-gray-600 hover:border-op-yellow shadow-2xl transition-all" id="dropZone">
-                <input type="file" id="fileInput" accept=".xlsx, .xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                <input type="file" id="fileInput" accept=".json, .csv, .xlsx, .xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
                 <div class="space-y-3 pointer-events-none">
                     <div class="w-14 h-14 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto group-hover:bg-op-yellow group-hover:text-dark transition-colors border border-gray-600">
                         <i class="fa-solid fa-bolt text-2xl text-white group-hover:text-dark"></i>
                     </div>
                     <div>
-                        <h3 class="text-lg font-semibold text-white">Carregar ficheiro Excel</h3>
-                        <p class="text-xs text-gray-300 mt-1">Modo Turbo ativado para grandes listas</p>
+                        <h3 class="text-lg font-semibold text-white">Carregar Base de Dados</h3>
+                        <p class="text-xs text-gray-300 mt-1">
+                            Suporta: <span class="text-op-yellow font-bold">JSON (Recomendado)</span>, CSV, Excel
+                        </p>
                     </div>
                 </div>
             </div>
@@ -104,14 +105,17 @@
             </div>
 
             <div class="bg-card/60 backdrop-blur-md p-4 rounded-2xl border border-gray-600 shadow-xl">
-                <label class="block text-left text-xs text-gray-300 mb-2 font-bold ml-1"><i class="fa-brands fa-google-drive text-green-400 mr-1"></i> Importar do Google Sheets</label>
+                <label class="block text-left text-xs text-gray-300 mb-2 font-bold ml-1">
+                    <i class="fa-brands fa-google-drive text-green-400 mr-1"></i> Importar do Google Drive / URL
+                </label>
                 <div class="flex gap-2">
-                    <input type="text" id="gSheetInput" placeholder="Cola o link do Google Sheets aqui..." 
+                    <input type="text" id="gSheetInput" placeholder="Cola o link do Drive, Gist ou URL direta..." 
                         class="flex-grow bg-dark/80 border border-gray-600 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-op-yellow transition-colors">
-                    <button onclick="loadFromGoogleSheets()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm transition-all shadow-lg hover:shadow-green-500/20">
+                    <button onclick="loadFromUrl()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm transition-all shadow-lg hover:shadow-green-500/20">
                         <i class="fa-solid fa-cloud-arrow-down"></i>
                     </button>
                 </div>
+                <p class="text-[10px] text-gray-400 mt-2 text-left ml-1">Suporta Google Drive, Sheets e Links Diretos (Raw).</p>
             </div>
 
             <button id="btnBackToDash" onclick="returnToDashboard()" class="hidden px-6 py-2 bg-gray-700/80 hover:bg-gray-600 text-white rounded-full transition-colors flex items-center gap-2 mx-auto backdrop-blur-sm">
@@ -120,7 +124,7 @@
             
             <div id="loadingIndicator" class="hidden">
                 <i class="fa-solid fa-circle-notch fa-spin text-op-yellow text-3xl"></i>
-                <p class="mt-2 text-sm text-gray-300 font-bold">A processar dados no Web Worker...</p>
+                <p class="mt-2 text-sm text-gray-300 font-bold">A processar dados...</p>
                 <p class="text-[10px] text-gray-500">Isto não irá bloquear o browser</p>
             </div>
         </div>
@@ -146,6 +150,7 @@
                 </div>
 
                 <div class="flex items-center gap-3">
+                    <!-- BOTÃO GUIA (Restaurado para o Guia de Apps) -->
                     <button onclick="openTutorialModal()" class="bg-op-yellow text-dark px-4 py-1.5 rounded-full text-xs font-bold hover:bg-white transition-all shadow-lg flex items-center gap-2">
                         <i class="fa-solid fa-circle-info"></i> Guia
                     </button>
@@ -156,53 +161,82 @@
             </div>
         </header>
 
-        <!-- MAIN GRID -->
-        <main class="container mx-auto px-4 py-8 flex-grow">
-            <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
-                <div class="flex gap-2 overflow-x-auto pb-2 scroll-hide w-full sm:w-auto" id="typeFilters">
-                    <button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-op-yellow text-dark text-sm font-bold shadow-lg shadow-op-yellow/20" onclick="filterType('all', this)">Todos</button>
-                    <button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-gray-800 text-gray-400 hover:text-white text-sm font-medium border border-gray-700" onclick="filterType('xtream', this)">Xtream</button>
-                    <button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-gray-800 text-gray-400 hover:text-white text-sm font-medium border border-gray-700" onclick="filterType('mac', this)">Stalker / MAC</button>
-                </div>
-                
-                <div class="flex items-center gap-3">
-                    <select id="itemsPerPageSelect" onchange="changeItemsPerPage(this.value)" class="bg-gray-800 text-gray-300 text-xs rounded-lg px-3 py-2 border border-gray-700 focus:outline-none">
-                        <option value="12">12 por página</option>
-                        <option value="24" selected>24 por página</option>
-                        <option value="48">48 por página</option>
-                        <option value="96">96 por página</option>
-                        <option value="10000">Listar Todas (Cuidado)</option>
-                    </select>
-                </div>
-            </div>
-
-            <div id="gridContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+        <!-- MAIN LAYOUT (SIDEBAR + GRID) -->
+        <main class="container mx-auto px-4 py-8 flex-grow flex flex-col lg:flex-row gap-6">
             
-            <div id="noResults" class="hidden text-center py-20">
-                <i class="fa-solid fa-skull-crossbones text-6xl text-gray-700 mb-4 animate-pulse"></i>
-                <p class="text-gray-500 text-lg">Nenhum tesouro encontrado.</p>
-            </div>
-
-            <div id="paginationContainer" class="hidden mt-8 flex flex-col sm:flex-row justify-between items-center border-t border-gray-800 pt-6 gap-4">
-                <span class="text-sm text-gray-400">
-                    A mostrar <span id="pageStart" class="text-white font-bold">0</span> até <span id="pageEnd" class="text-white font-bold">0</span> de <span id="pageTotal" class="text-white font-bold">0</span> resultados
-                </span>
-                <div class="flex items-center gap-2">
-                    <button onclick="changePage(-1)" id="btnPrev" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg disabled:opacity-50 transition-colors">
-                        <i class="fa-solid fa-chevron-left"></i>
-                    </button>
-                    <div class="px-4 py-2 bg-gray-800/50 rounded-lg text-sm text-gray-300">
-                        Página <span id="pageCurrent" class="text-white font-bold">1</span> de <span id="pageMax" class="font-bold">1</span>
+            <!-- SIDEBAR DE FILTROS (Portais) -->
+            <aside id="portalSidebarContainer" class="hidden lg:block w-full lg:w-64 flex-shrink-0 transition-all duration-300">
+                <div class="bg-card/50 border border-gray-700/50 rounded-xl p-4 sticky top-24 max-h-[calc(100vh-8rem)] overflow-hidden flex flex-col">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-xs font-bold text-op-yellow uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-server"></i> Portais
+                        </h3>
+                        <span id="portalCountBadge" class="bg-gray-800 text-gray-400 text-[10px] px-2 py-0.5 rounded-full">0</span>
                     </div>
-                    <button onclick="changePage(1)" id="btnNext" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg disabled:opacity-50 transition-colors">
-                        <i class="fa-solid fa-chevron-right"></i>
+                    
+                    <div class="mb-3 relative">
+                        <input type="text" id="portalSearch" placeholder="Filtrar lista..." class="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-op-yellow/50">
+                    </div>
+
+                    <div id="portalList" class="space-y-1 overflow-y-auto custom-scrollbar flex-grow pr-1">
+                        <!-- Lista injetada via JS -->
+                        <div class="text-center py-4 text-gray-500 text-xs">Carregando...</div>
+                    </div>
+                    
+                    <button onclick="clearPortalFilter()" id="btnClearPortal" class="hidden mt-3 w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold py-2 rounded-lg transition-all">
+                        Limpar Filtro
                     </button>
+                </div>
+            </aside>
+
+            <!-- CONTEÚDO PRINCIPAL (Grelha) -->
+            <div class="flex-grow min-w-0">
+                <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+                    <div class="flex gap-2 overflow-x-auto pb-2 scroll-hide w-full sm:w-auto" id="typeFilters">
+                        <button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-op-yellow text-dark text-sm font-bold shadow-lg shadow-op-yellow/20" onclick="filterType('all', this)">Todos</button>
+                        <button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-gray-800 text-gray-400 hover:text-white text-sm font-medium border border-gray-700" onclick="filterType('xtream', this)">Xtream</button>
+                        <button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-gray-800 text-gray-400 hover:text-white text-sm font-medium border border-gray-700" onclick="filterType('mac', this)">Stalker / MAC</button>
+                    </div>
+                    
+                    <div class="flex items-center gap-3">
+                        <select id="itemsPerPageSelect" onchange="changeItemsPerPage(this.value)" class="bg-gray-800 text-gray-300 text-xs rounded-lg px-3 py-2 border border-gray-700 focus:outline-none">
+                            <option value="12">12 por página</option>
+                            <option value="24" selected>24 por página</option>
+                            <option value="48">48 por página</option>
+                            <option value="96">96 por página</option>
+                            <option value="10000">Listar Todas (Cuidado)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="gridContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-6"></div>
+                
+                <div id="noResults" class="hidden text-center py-20">
+                    <i class="fa-solid fa-skull-crossbones text-6xl text-gray-700 mb-4 animate-pulse"></i>
+                    <p class="text-gray-500 text-lg">Nenhum tesouro encontrado.</p>
+                </div>
+
+                <div id="paginationContainer" class="hidden mt-8 flex flex-col sm:flex-row justify-between items-center border-t border-gray-800 pt-6 gap-4">
+                    <span class="text-sm text-gray-400">
+                        A mostrar <span id="pageStart" class="text-white font-bold">0</span> até <span id="pageEnd" class="text-white font-bold">0</span> de <span id="pageTotal" class="text-white font-bold">0</span> resultados
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="changePage(-1)" id="btnPrev" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg disabled:opacity-50 transition-colors">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <div class="px-4 py-2 bg-gray-800/50 rounded-lg text-sm text-gray-300">
+                            Página <span id="pageCurrent" class="text-white font-bold">1</span> de <span id="pageMax" class="font-bold">1</span>
+                        </div>
+                        <button onclick="changePage(1)" id="btnNext" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg disabled:opacity-50 transition-colors">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </main>
 
         <footer class="border-t border-gray-800 py-6 text-center text-gray-600 text-xs mt-auto">
-            <p>Leitor de Excel Otimizado • Dashboard v5.0 • Desenvolvido para Underground TV PT</p>
+            <p>Leitor de JSON/CSV/Excel • Dashboard v11.0 • Desenvolvido para Underground TV PT</p>
         </footer>
     </div>
 
@@ -222,13 +256,12 @@
 
             <div class="p-6 space-y-5 overflow-y-auto custom-scrollbar">
                 
-                <!-- AVISO DE VPN / GEOLOCK -->
                 <div id="vpnWarningBox" class="hidden animate-pulse">
                     <div class="bg-red-500/10 border border-red-500/50 rounded-lg p-3 flex items-start gap-3">
                         <i class="fa-solid fa-shield-halved text-red-500 text-xl mt-0.5"></i>
                         <div>
                             <h4 class="text-red-500 font-bold text-sm uppercase tracking-wider">Geolock Detectado</h4>
-                            <p class="text-xs text-gray-300 mt-1">Este servidor requer o uso de uma <span class="text-white font-bold">VPN</span> para funcionar corretamente em algumas regiões.</p>
+                            <p class="text-xs text-gray-300 mt-1">Este servidor requer o uso de uma <span class="text-white font-bold">VPN</span>.</p>
                         </div>
                     </div>
                 </div>
@@ -420,35 +453,108 @@
     </div>
 
     <script>
+        // --- 1. FUNÇÕES UTILITÁRIAS (DEVEM ESTAR NO TOPO) ---
+        function formatDate(d) {
+            if (!d) return '';
+            try { 
+                const dateObj = (d instanceof Date) ? d : new Date(d);
+                if (isNaN(dateObj.getTime())) return d.toString(); 
+                return dateObj.toLocaleDateString('pt-PT');
+            } catch(e) { return d; }
+        }
+
+        function getHostName(url) {
+            try {
+                if (!url) return 'Desconhecido';
+                let clean = url.replace(/^https?:\/\//, '');
+                if (clean.endsWith('/')) clean = clean.slice(0, -1);
+                if (url.startsWith('http')) return new URL(url).hostname;
+                return clean.split('/')[0];
+            } catch { return url || 'Erro'; }
+        }
+
+        function copyToClipboard(id) {
+            const el = document.getElementById(id);
+            if(el) {
+                el.select(); 
+                navigator.clipboard.writeText(el.value);
+                showToast("Copiado!", false);
+            }
+        }
+
+        function showToast(msg, isError) {
+            const t = document.getElementById('toast');
+            if(!t) return;
+            document.getElementById('toastMessage').innerText = msg;
+            if (isError) {
+                t.className = "fixed bottom-6 right-6 z-50 transform transition-all duration-300 bg-gray-800 border-l-4 border-red-500 text-white px-6 py-4 rounded shadow-2xl flex items-center gap-4";
+            } else {
+                t.className = "fixed bottom-6 right-6 z-50 transform transition-all duration-300 bg-gray-800 border-l-4 border-green-500 text-white px-6 py-4 rounded shadow-2xl flex items-center gap-4";
+            }
+            t.classList.remove('translate-y-32');
+            setTimeout(() => t.classList.add('translate-y-32'), 3000);
+        }
+
+        // --- 2. VARIÁVEIS GLOBAIS ---
         let allAccounts = [];
         let filteredAccounts = [];
         let currentFilter = 'all';
+        let currentPortalFilter = null;
         let currentAccountIndex = -1;
         let currentPage = 1;
         let itemsPerPage = 24;
         const DEFAULT_FILENAME = 'Resultados_Finais.xlsx';
 
-        // --- WEB WORKER PARA CARREGAMENTO ASSÍNCRONO (NÃO BLOQUEIA A UI) ---
+        // --- 3. WORKER SCRIPT ---
         const workerScript = `
             importScripts('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
             
-            self.onmessage = function(e) {
-                const data = e.data;
-                try {
-                    const workbook = XLSX.read(new Uint8Array(data), { type: 'array' });
-                    let results = [];
-                    
-                    workbook.SheetNames.forEach(sheet => {
-                        const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheet]);
-                        results = results.concat(jsonData);
+            function parseCSV(text) {
+                const lines = text.split(/\\r\\n|\\n/);
+                const results = [];
+                if (lines.length < 2) return [];
+                const headerLine = lines[0];
+                const delimiter = headerLine.includes(',') ? ',' : ';';
+                const headers = headerLine.split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    const values = line.split(delimiter);
+                    const obj = {};
+                    headers.forEach((h, index) => {
+                        let val = values[index] ? values[index].trim() : '';
+                        val = val.replace(/^"|"$/g, '');
+                        obj[h] = val;
                     });
+                    if (obj.Host || obj.Username || obj.MAC) results.push(obj);
+                }
+                return results;
+            }
+
+            self.onmessage = function(e) {
+                const { data, type } = e.data;
+                try {
+                    let results = [];
+                    if (type === 'json') {
+                        const decoder = new TextDecoder("utf-8");
+                        const text = decoder.decode(data);
+                        results = JSON.parse(text);
+                    } else if (type === 'csv') {
+                        const decoder = new TextDecoder("utf-8");
+                        const text = decoder.decode(data);
+                        results = parseCSV(text);
+                    } else {
+                        const workbook = XLSX.read(new Uint8Array(data), { type: 'array' });
+                        workbook.SheetNames.forEach(sheet => {
+                            const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheet]);
+                            results = results.concat(jsonData);
+                        });
+                    }
                     
-                    // Pré-processamento: Cria string de pesquisa indexada para velocidade extrema
                     const optimizedResults = results.map(acc => {
-                        // Limpeza básica
                         if (!acc.Host && !acc.Username && !acc.MAC) return null;
-                        
-                        // Indexação para pesquisa instantânea
+                        if (acc._search) return acc;
+
                         const searchStr = (
                             (acc.Host || '') + ' ' + 
                             (acc.Username || '') + ' ' + 
@@ -456,14 +562,12 @@
                             (acc['Grupos Live'] || '')
                         ).toLowerCase();
                         
-                        // Normalização do tipo
                         const rawType = (acc.Tipo || '').toLowerCase();
                         const isMac = rawType.includes('mac') || rawType.includes('stalker');
                         
                         return { ...acc, _search: searchStr, _isMac: isMac };
                     }).filter(item => item !== null);
                     
-                    // Ordenação por Validade (recente primeiro)
                     optimizedResults.sort((a, b) => {
                         const getTs = (v) => v ? new Date(v).getTime() : 0;
                         return getTs(b.Validade) - getTs(a.Validade);
@@ -479,24 +583,27 @@
         const workerBlob = new Blob([workerScript], { type: 'application/javascript' });
         const worker = new Worker(URL.createObjectURL(workerBlob));
 
+        // --- 4. EVENT LISTENERS & LÓGICA ---
         worker.onmessage = function(e) {
             const response = e.data;
             document.getElementById('loadingIndicator').classList.add('hidden');
-            
             if (response.success) {
                 allAccounts = response.data;
                 filteredAccounts = [...allAccounts];
                 showDashboard();
-                showToast(`Carregadas ${allAccounts.length} contas!`, false);
+                showToast(`Sucesso! ${allAccounts.length} contas carregadas.`, false);
             } else {
-                showToast("Erro ao processar ficheiro: " + response.error, true);
+                showToast("Erro: " + response.error, true);
             }
         };
 
         window.onload = async () => {
             try {
                 const response = await fetch(DEFAULT_FILENAME);
-                if (response.ok) processFile(await response.blob());
+                if (response.ok) {
+                    const blob = await response.blob();
+                    processFile(blob); 
+                }
             } catch (e) {}
         };
 
@@ -508,34 +615,79 @@
         dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
         dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); processFile(e.dataTransfer.files[0]); });
 
-        async function loadFromGoogleSheets() {
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            if(window.searchTimeout) clearTimeout(window.searchTimeout);
+            window.searchTimeout = setTimeout(() => {
+                currentPage = 1;
+                currentPortalFilter = null; 
+                renderCards(e.target.value);
+            }, 300);
+        });
+
+        document.getElementById('portalSearch').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('#portalList button');
+            items.forEach(item => {
+                if(item.innerText.toLowerCase().includes(term)) item.classList.remove('hidden');
+                else item.classList.add('hidden');
+            });
+        });
+
+        async function loadFromUrl() {
             const input = document.getElementById('gSheetInput');
             let url = input.value.trim();
             if (!url) { showToast("Insere um link válido.", true); return; }
-            const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-            if (match && match[1]) url = 'https://corsproxy.io/?' + encodeURIComponent(`https://docs.google.com/spreadsheets/d/${match[1]}/export?format=xlsx`);
-            else { showToast("Link inválido.", true); return; }
-            
+            const driveMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            if (driveMatch && driveMatch[1]) {
+                const fileId = driveMatch[1];
+                if (url.includes('spreadsheets')) {
+                    url = 'https://corsproxy.io/?' + encodeURIComponent(`https://docs.google.com/spreadsheets/d/${fileId}/export?format=csv`);
+                } else {
+                    const driveUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+                    url = 'https://corsproxy.io/?' + encodeURIComponent(driveUrl);
+                }
+            } else {
+                if (!url.includes('corsproxy.io') && !url.includes('allorigins')) {
+                    url = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+                }
+            }
             document.getElementById('loadingIndicator').classList.remove('hidden');
             try {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error();
-                processFile(await response.blob());
+                const blob = await response.blob();
+                let type = null;
+                const originalUrl = input.value.trim().toLowerCase();
+                if (originalUrl.endsWith('.json')) type = 'json';
+                else if (originalUrl.endsWith('.csv')) type = 'csv';
+                processFile(blob, type);
                 input.value = ''; 
             } catch (error) { 
-                showToast("Erro no carregamento.", true); 
+                console.error(error);
+                showToast("Erro no carregamento. Verifica se o link é público.", true); 
                 document.getElementById('loadingIndicator').classList.add('hidden');
             }
         }
 
-        function processFile(file) {
+        function processFile(file, forceType = null) {
             if(!file) return;
             document.getElementById('loadingIndicator').classList.remove('hidden');
-            
-            // Envia para o Web Worker (Background Thread)
+            let type = 'excel';
+            if (forceType) type = forceType;
+            else if (file.name?.toLowerCase().endsWith('.json') || file.type === 'application/json') type = 'json';
+            else if (file.name?.toLowerCase().endsWith('.csv') || file.type === 'text/csv') type = 'csv';
             const reader = new FileReader();
             reader.onload = (e) => {
-                worker.postMessage(e.target.result);
+                let content = e.target.result;
+                let finalType = type;
+                if (finalType === 'excel') {
+                    try {
+                        const dec = new TextDecoder("utf-8");
+                        const txt = dec.decode(content).trim();
+                        if (txt.startsWith('[') || txt.startsWith('{')) finalType = 'json';
+                    } catch(e) {}
+                }
+                worker.postMessage({ data: content, type: finalType });
             };
             reader.readAsArrayBuffer(file);
         }
@@ -573,56 +725,85 @@
             window.scrollTo({top: 0, behavior: 'smooth'});
         }
 
-        // --- DEBOUNCE NA PESQUISA (OTIMIZAÇÃO CRÍTICA PARA 40k) ---
-        let debounceTimer;
-        document.getElementById('searchInput').addEventListener('input', (e) => {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                currentPage = 1;
-                renderCards(e.target.value);
-            }, 300); // Aguarda 300ms após parar de escrever
-        });
+        function selectPortal(host) {
+            currentPortalFilter = host;
+            currentPage = 1;
+            renderCards(document.getElementById('searchInput').value, true);
+        }
 
-        function renderCards(term = '') {
+        function clearPortalFilter() {
+            currentPortalFilter = null;
+            renderCards(document.getElementById('searchInput').value, true);
+        }
+
+        function renderCards(term = '', keepSidebar = false) {
             term = term.toLowerCase();
-            
-            // Filtro Otimizado usando a string pré-indexada pelo Worker
-            filteredAccounts = allAccounts.filter(acc => {
-                // 1. Pesquisa de Texto (Rápida)
+            let baseFiltered = allAccounts.filter(acc => {
                 if (term && !acc._search.includes(term)) return false;
-                
-                // 2. Filtro de Tipo (Rápido)
                 if (currentFilter === 'xtream' && acc._isMac) return false;
                 if (currentFilter === 'mac' && !acc._isMac) return false;
-                
                 return true;
             });
-
+            if (!keepSidebar) { renderSidebar(baseFiltered); }
+            if (currentPortalFilter) {
+                filteredAccounts = baseFiltered.filter(acc => {
+                    const h = getHostName(acc.Host);
+                    return h === currentPortalFilter;
+                });
+                document.getElementById('btnClearPortal').classList.remove('hidden');
+            } else {
+                filteredAccounts = baseFiltered;
+                document.getElementById('btnClearPortal').classList.add('hidden');
+            }
             document.getElementById('totalCount').innerText = filteredAccounts.length;
             document.getElementById('noResults').classList.toggle('hidden', filteredAccounts.length > 0);
             document.getElementById('paginationContainer').classList.toggle('hidden', filteredAccounts.length === 0);
-            
+            document.querySelectorAll('#portalList button').forEach(btn => {
+                if (btn.dataset.host === currentPortalFilter) {
+                    btn.classList.remove('bg-gray-800/50', 'text-gray-300', 'hover:bg-gray-700');
+                    btn.classList.add('bg-op-yellow', 'text-dark', 'font-bold', 'shadow-md');
+                } else {
+                    btn.classList.add('bg-gray-800/50', 'text-gray-300', 'hover:bg-gray-700');
+                    btn.classList.remove('bg-op-yellow', 'text-dark', 'font-bold', 'shadow-md');
+                }
+            });
             renderGridOnly();
             updatePaginationControls();
+        }
+
+        function renderSidebar(accounts) {
+            const list = document.getElementById('portalList');
+            const counts = {};
+            accounts.forEach(acc => {
+                const host = getHostName(acc.Host);
+                counts[host] = (counts[host] || 0) + 1;
+            });
+            const sortedHosts = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+            document.getElementById('portalCountBadge').innerText = sortedHosts.length;
+            list.innerHTML = '';
+            if (sortedHosts.length === 0) {
+                list.innerHTML = '<div class="text-center py-4 text-gray-500 text-xs">Sem portais</div>';
+                return;
+            }
+            sortedHosts.forEach(([host, count]) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left px-3 py-2 rounded-lg text-xs transition-all flex justify-between items-center group bg-gray-800/50 text-gray-300 hover:bg-gray-700 mb-1";
+                btn.dataset.host = host;
+                btn.onclick = () => selectPortal(host);
+                btn.innerHTML = `<span class="truncate pr-2 font-medium" title="${host}">${host}</span><span class="bg-dark/50 text-gray-500 px-1.5 py-0.5 rounded text-[9px] group-hover:bg-dark group-hover:text-gray-300 transition-colors">${count}</span>`;
+                list.appendChild(btn);
+            });
         }
 
         function renderGridOnly() {
             const grid = document.getElementById('gridContainer');
             grid.innerHTML = '';
-            
             const start = (currentPage - 1) * itemsPerPage;
-            // Slice é rápido, apenas renderiza o que é visível
             const itemsToShow = filteredAccounts.slice(start, start + itemsPerPage);
-            
             itemsToShow.forEach((acc) => {
-                // Encontra índice original para referência no modal
-                // (Nota: findIndex pode ser lento, mas apenas em 24 itens é irrelevante)
-                // Otimização: Poderíamos passar o objeto direto para o openModal, mas o indice é usado
                 const originalIndex = allAccounts.indexOf(acc); 
-                
                 const isMac = acc._isMac;
-                const serverName = (acc.Host && acc.Host.startsWith('http')) ? new URL(acc.Host).hostname : (acc.Host || 'Servidor');
-                
+                const serverName = getHostName(acc.Host);
                 const card = document.createElement('div');
                 card.className = "bg-card rounded-xl border border-gray-700/50 hover:shadow-xl transition-all flex flex-col justify-between overflow-hidden card-animate group h-full";
                 card.innerHTML = `
@@ -638,7 +819,7 @@
                     </div>
                     <div class="bg-gray-800/50 px-5 py-3 border-t border-gray-700/50 flex justify-between items-center">
                         <div class="text-[10px] ${acc.Validade ? 'text-green-400' : 'text-gray-500'} font-bold">
-                            <i class="fa-regular fa-calendar-check"></i> ${acc.Validade ? formatDate(acc.Validade) : 'S/ Data'}
+                            <i class="fa-regular fa-calendar-check"></i> ${formatDate(acc.Validade)}
                         </div>
                         <button onclick="openModal(${originalIndex})" class="text-op-yellow text-xs font-bold hover:underline">Detalhes</button>
                     </div>
@@ -665,18 +846,16 @@
             currentAccountIndex = index;
             const acc = allAccounts[index];
             const isMac = acc._isMac;
-            
             const modal = document.getElementById('detailsModal');
             document.body.style.overflow = 'hidden';
             
-            const hostDisplay = (acc.Host && acc.Host.startsWith('http')) ? new URL(acc.Host).hostname : acc.Host;
+            const hostDisplay = getHostName(acc.Host);
             document.getElementById('modalTitle').innerText = hostDisplay;
             document.getElementById('modalHost').value = acc.Host || '';
             document.getElementById('modalUser').value = acc.Username || '';
             document.getElementById('modalPass').value = acc.Password || '';
             document.getElementById('modalExp').innerText = formatDate(acc.Validade) || 'Indefinido';
 
-            // --- LÓGICA DE VPN / GEOLOCK ---
             const geolockValue = (acc.Geolocked || acc.VPN || acc.Geo || '').toString().toLowerCase();
             const isGeolocked = geolockValue === 'sim' || geolockValue === 'yes' || geolockValue === 'true' || geolockValue === '1';
             const vpnBox = document.getElementById('vpnWarningBox');
@@ -710,8 +889,8 @@
                         badge.innerText = g;
                         badge.onclick = () => { 
                             document.getElementById('searchInput').value = g; 
-                            // Dispara o evento de input manualmente ou chama render direto
                             currentPage = 1;
+                            currentPortalFilter = null;
                             renderCards(g); 
                             closeModal(); 
                         };
@@ -731,13 +910,13 @@
             btn.disabled = true;
 
             const acc = allAccounts[currentAccountIndex];
-            const host = acc.Host.startsWith('http') ? acc.Host : 'http://' + acc.Host;
+            let host = acc.Host;
+            if (host && !host.startsWith('http')) { host = 'http://' + host; }
             const apiUrl = `${host}/player_api.php?username=${acc.Username}&password=${acc.Password}`;
-
             const proxies = [
                 (url) => url,
-                (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-                (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+                (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`
             ];
 
             let success = false;
@@ -745,9 +924,12 @@
                 try {
                     const finalUrl = proxies[i](apiUrl);
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 6000);
+                    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
 
                     const response = await fetch(finalUrl, { signal: controller.signal });
+                    
+                    if (!response.ok) throw new Error(response.statusText);
+
                     const data = await response.json();
                     clearTimeout(timeoutId);
 
@@ -761,13 +943,15 @@
                         success = true;
                         break;
                     }
-                } catch (e) {}
+                } catch (e) {
+                    // Falha silenciosa para tentar o próximo proxy
+                }
             }
 
             if (!success) {
                 btn.classList.add('hidden');
                 resBox.classList.remove('hidden');
-                resText.innerText = "Erro CORS/Proxy";
+                resText.innerText = "Offline / Erro";
                 resBox.className = "w-full bg-dark border border-orange-500 text-orange-400 rounded-lg px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 h-[42px]";
             }
             btn.disabled = false;
@@ -779,37 +963,6 @@
             modal.classList.add('opacity-0');
             document.getElementById('modalContent').classList.remove('scale-100');
             setTimeout(() => { modal.classList.add('hidden'); document.body.style.overflow = ''; }, 300);
-        }
-
-        window.onclick = function(event) {
-            if (event.target == document.getElementById('detailsModal')) closeModal();
-            if (event.target == document.getElementById('tutorialModal')) closeTutorialModal();
-        }
-
-        function formatDate(d) {
-            if (!d) return '';
-            try { return (d instanceof Date) ? d.toLocaleDateString('pt-PT') : d.toString().split(' ')[0]; } catch(e) { return d; }
-        }
-
-        function copyToClipboard(id) {
-            const el = document.getElementById(id);
-            el.select(); navigator.clipboard.writeText(el.value);
-            showToast("Copiado!", false);
-        }
-
-        function showToast(msg, isError) {
-            const t = document.getElementById('toast');
-            document.getElementById('toastMessage').innerText = msg;
-            
-            // Estilo visual erro vs sucesso
-            if (isError) {
-                t.className = "fixed bottom-6 right-6 z-50 transform transition-all duration-300 bg-gray-800 border-l-4 border-red-500 text-white px-6 py-4 rounded shadow-2xl flex items-center gap-4";
-            } else {
-                t.className = "fixed bottom-6 right-6 z-50 transform transition-all duration-300 bg-gray-800 border-l-4 border-green-500 text-white px-6 py-4 rounded shadow-2xl flex items-center gap-4";
-            }
-            
-            t.classList.remove('translate-y-32');
-            setTimeout(() => t.classList.add('translate-y-32'), 3000);
         }
 
         function openTutorialModal() {
@@ -835,6 +988,10 @@
 
         function openPlaylistLink() { window.open(document.getElementById('modalM3u').value, '_blank'); }
 
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('detailsModal')) closeModal();
+            if (event.target == document.getElementById('tutorialModal')) closeTutorialModal();
+        }
     </script>
 </body>
 </html>
