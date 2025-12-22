@@ -150,8 +150,8 @@
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <!-- BOTÃO GUIA (Restaurado para o Guia de Apps) -->
-                    <button onclick="openTutorialModal()" class="bg-op-yellow text-dark px-4 py-1.5 rounded-full text-xs font-bold hover:bg-white transition-all shadow-lg flex items-center gap-2">
+                    <!-- BOTÃO GUIA DE APPS -->
+                    <button onclick="openTutorialModal()" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-lg flex items-center gap-2">
                         <i class="fa-solid fa-circle-info"></i> Guia
                     </button>
                     <div class="text-sm font-semibold bg-op-yellow/10 text-op-yellow px-4 py-1.5 rounded-full border border-op-yellow/20 hidden md:block">
@@ -236,7 +236,7 @@
         </main>
 
         <footer class="border-t border-gray-800 py-6 text-center text-gray-600 text-xs mt-auto">
-            <p>Leitor de JSON/CSV/Excel • Dashboard v11.0 • Desenvolvido para Underground TV PT</p>
+            <p>Leitor de JSON/CSV/Excel • Dashboard v14.0 (Robust) • Desenvolvido para Underground TV PT</p>
         </footer>
     </div>
 
@@ -366,8 +366,8 @@
             
             <div class="bg-gradient-to-r from-op-yellow/20 to-gray-900 p-6 border-b border-gray-700 flex justify-between items-center">
                 <h3 class="text-xl font-bold text-white flex items-center gap-3">
-                    <i class="fa-solid fa-circle-info text-op-yellow"></i> 
-                    Guia de Utilização e Apps
+                    <i class="fa-solid fa-layer-group text-op-yellow"></i> 
+                    Apps Recomendadas
                 </h3>
                 <button onclick="closeTutorialModal()" class="text-gray-400 hover:text-white hover:bg-white/10 rounded-full p-1 w-8 h-8 flex items-center justify-center">
                     <i class="fa-solid fa-times"></i>
@@ -421,18 +421,6 @@
                         </p>
                     </div>
                 </div>
-
-                <!-- Dica Rápida -->
-                <div class="bg-accent/10 border border-accent/30 p-4 rounded-xl flex gap-4 items-start">
-                    <i class="fa-solid fa-lightbulb text-accent text-xl mt-1"></i>
-                    <div>
-                        <h4 class="text-sm font-bold text-white mb-1">Dica de Performance</h4>
-                        <p class="text-xs text-gray-400 leading-relaxed">
-                            Muitos servidores bloqueiam conexões se o Player tentar atualizar tudo ao mesmo tempo. No dashboard, use a "Verificação Rápida" para confirmar se a conta está online antes de configurar no seu dispositivo.
-                        </p>
-                    </div>
-                </div>
-
             </div>
             
             <div class="p-4 bg-gray-900/50 border-t border-gray-800 text-center">
@@ -453,7 +441,7 @@
     </div>
 
     <script>
-        // --- 1. FUNÇÕES UTILITÁRIAS (DEVEM ESTAR NO TOPO) ---
+        // --- 1. FUNÇÕES UTILITÁRIAS (No topo para evitar erros de referência) ---
         function formatDate(d) {
             if (!d) return '';
             try { 
@@ -508,7 +496,6 @@
         // --- 3. WORKER SCRIPT ---
         const workerScript = `
             importScripts('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
-            
             function parseCSV(text) {
                 const lines = text.split(/\\r\\n|\\n/);
                 const results = [];
@@ -530,7 +517,6 @@
                 }
                 return results;
             }
-
             self.onmessage = function(e) {
                 const { data, type } = e.data;
                 try {
@@ -550,33 +536,20 @@
                             results = results.concat(jsonData);
                         });
                     }
-                    
                     const optimizedResults = results.map(acc => {
                         if (!acc.Host && !acc.Username && !acc.MAC) return null;
                         if (acc._search) return acc;
-
-                        const searchStr = (
-                            (acc.Host || '') + ' ' + 
-                            (acc.Username || '') + ' ' + 
-                            (acc.MAC || '') + ' ' + 
-                            (acc['Grupos Live'] || '')
-                        ).toLowerCase();
-                        
+                        const searchStr = ((acc.Host || '') + ' ' + (acc.Username || '') + ' ' + (acc.MAC || '') + ' ' + (acc['Grupos Live'] || '')).toLowerCase();
                         const rawType = (acc.Tipo || '').toLowerCase();
                         const isMac = rawType.includes('mac') || rawType.includes('stalker');
-                        
                         return { ...acc, _search: searchStr, _isMac: isMac };
                     }).filter(item => item !== null);
-                    
                     optimizedResults.sort((a, b) => {
                         const getTs = (v) => v ? new Date(v).getTime() : 0;
                         return getTs(b.Validade) - getTs(a.Validade);
                     });
-
                     postMessage({ success: true, data: optimizedResults });
-                } catch (err) {
-                    postMessage({ success: false, error: err.message });
-                }
+                } catch (err) { postMessage({ success: false, error: err.message }); }
             };
         `;
 
@@ -599,12 +572,16 @@
 
         window.onload = async () => {
             try {
-                const response = await fetch(DEFAULT_FILENAME);
+                // Verificação silenciosa
+                const response = await fetch(DEFAULT_FILENAME, { method: 'HEAD' });
                 if (response.ok) {
-                    const blob = await response.blob();
+                    const blobResp = await fetch(DEFAULT_FILENAME);
+                    const blob = await blobResp.blob();
                     processFile(blob); 
                 }
-            } catch (e) {}
+            } catch (e) {
+                // Silencioso - ficheiro não existe, comportamento normal
+            }
         };
 
         const fileInput = document.getElementById('fileInput');
@@ -633,40 +610,93 @@
             });
         });
 
+        // --- LÓGICA DE CARREGAMENTO (MELHORADA COM MÚLTIPLOS PROXIES) ---
         async function loadFromUrl() {
             const input = document.getElementById('gSheetInput');
-            let url = input.value.trim();
-            if (!url) { showToast("Insere um link válido.", true); return; }
-            const driveMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            let rawUrl = input.value.trim();
+            if (!rawUrl) { showToast("Insere um link válido.", true); return; }
+            
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+            
+            let fetchUrl = rawUrl;
+            // Google Drive / Sheets Logic
+            const driveMatch = rawUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            
             if (driveMatch && driveMatch[1]) {
                 const fileId = driveMatch[1];
-                if (url.includes('spreadsheets')) {
-                    url = 'https://corsproxy.io/?' + encodeURIComponent(`https://docs.google.com/spreadsheets/d/${fileId}/export?format=csv`);
+                if (rawUrl.includes('spreadsheets')) {
+                    fetchUrl = `https://docs.google.com/spreadsheets/d/${fileId}/export?format=csv`;
                 } else {
-                    const driveUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-                    url = 'https://corsproxy.io/?' + encodeURIComponent(driveUrl);
+                    fetchUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
                 }
+            }
+
+            // Updated Proxy List
+            const proxies = [
+                // AllOrigins - JSON/Text friendly
+                (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+                // CodeTabs - Robust
+                (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+                // CorsProxy.io - Popular but sometimes rate limits (403)
+                (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+                // Cors-Anywhere (Demo) - Last resort
+                (u) => `https://cors-anywhere.herokuapp.com/${u}` 
+            ];
+
+            let success = false;
+            let finalData = null;
+            let detectedType = null;
+
+            for (const proxyGen of proxies) {
+                try {
+                    const target = proxyGen(fetchUrl);
+                    console.log("Trying proxy:", target); // Debug help
+                    
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout per proxy
+
+                    const response = await fetch(target, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    
+                    const blob = await response.blob();
+                    
+                    // Check if we got an HTML error page (common with Drive download warnings)
+                    if (blob.type.includes('text/html')) {
+                         const text = await blob.text();
+                         if(text.trim().toLowerCase().startsWith('<!doctype html') || text.includes('drive.google.com')) {
+                             // Google Drive might show a "Virus Scan" warning page for large files
+                             // If so, we can't bypass it easily via simple fetch without user interaction
+                             throw new Error("Recebido HTML (Bloqueio ou Aviso do Google)");
+                         }
+                         // If it's valid JSON inside HTML? Unlikely.
+                         // But if it's CSV, it shouldn't be HTML.
+                         finalData = new Blob([text], {type: blob.type});
+                    } else {
+                        finalData = blob;
+                    }
+
+                    // Type detection
+                    if (rawUrl.toLowerCase().endsWith('.json') || fetchUrl.toLowerCase().endsWith('.json')) detectedType = 'json';
+                    else if (rawUrl.toLowerCase().endsWith('.csv') || fetchUrl.includes('format=csv')) detectedType = 'csv';
+                    else detectedType = 'excel';
+                    
+                    success = true;
+                    break;
+                } catch (e) {
+                    console.warn("Proxy falhou:", e);
+                }
+            }
+
+            if (success && finalData) {
+                processFile(finalData, detectedType);
+                input.value = '';
             } else {
-                if (!url.includes('corsproxy.io') && !url.includes('allorigins')) {
-                    url = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
-                }
+                showToast("Erro ao importar. Verifica o link e permissões.", true);
             }
-            document.getElementById('loadingIndicator').classList.remove('hidden');
-            try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error();
-                const blob = await response.blob();
-                let type = null;
-                const originalUrl = input.value.trim().toLowerCase();
-                if (originalUrl.endsWith('.json')) type = 'json';
-                else if (originalUrl.endsWith('.csv')) type = 'csv';
-                processFile(blob, type);
-                input.value = ''; 
-            } catch (error) { 
-                console.error(error);
-                showToast("Erro no carregamento. Verifica se o link é público.", true); 
-                document.getElementById('loadingIndicator').classList.add('hidden');
-            }
+            
+            document.getElementById('loadingIndicator').classList.add('hidden');
         }
 
         function processFile(file, forceType = null) {
@@ -692,6 +722,7 @@
             reader.readAsArrayBuffer(file);
         }
 
+        // --- LÓGICA DE UI ---
         function showDashboard() {
             document.getElementById('uploadSection').classList.add('hidden');
             document.getElementById('mainDashboard').classList.remove('hidden');
@@ -806,24 +837,7 @@
                 const serverName = getHostName(acc.Host);
                 const card = document.createElement('div');
                 card.className = "bg-card rounded-xl border border-gray-700/50 hover:shadow-xl transition-all flex flex-col justify-between overflow-hidden card-animate group h-full";
-                card.innerHTML = `
-                    <div class="p-5 cursor-pointer flex-grow" onclick="openModal(${originalIndex})">
-                        <div class="flex justify-between items-start mb-4">
-                            <div class="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center border border-gray-700">
-                                <i class="fa-solid ${isMac ? 'fa-microchip text-op-yellow' : 'fa-user-circle text-blue-400'} text-lg"></i>
-                            </div>
-                            <span class="text-[10px] font-bold tracking-wider text-gray-500 bg-gray-900/50 px-2 py-1 rounded border border-gray-800">${isMac ? 'MAC' : 'XTREAM'}</span>
-                        </div>
-                        <h3 class="font-bold text-gray-100 mb-1 truncate text-base" title="${serverName}">${serverName}</h3>
-                        <p class="text-xs text-gray-400 truncate font-mono">${isMac ? 'MAC: ' + (acc.MAC || 'N/A') : 'User: ' + (acc.Username || 'N/A')}</p>
-                    </div>
-                    <div class="bg-gray-800/50 px-5 py-3 border-t border-gray-700/50 flex justify-between items-center">
-                        <div class="text-[10px] ${acc.Validade ? 'text-green-400' : 'text-gray-500'} font-bold">
-                            <i class="fa-regular fa-calendar-check"></i> ${formatDate(acc.Validade)}
-                        </div>
-                        <button onclick="openModal(${originalIndex})" class="text-op-yellow text-xs font-bold hover:underline">Detalhes</button>
-                    </div>
-                `;
+                card.innerHTML = `<div class="p-5 cursor-pointer flex-grow" onclick="openModal(${originalIndex})"><div class="flex justify-between items-start mb-4"><div class="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center border border-gray-700"><i class="fa-solid ${isMac ? 'fa-microchip text-op-yellow' : 'fa-user-circle text-blue-400'} text-lg"></i></div><span class="text-[10px] font-bold tracking-wider text-gray-500 bg-gray-900/50 px-2 py-1 rounded border border-gray-800">${isMac ? 'MAC' : 'XTREAM'}</span></div><h3 class="font-bold text-gray-100 mb-1 truncate text-base" title="${serverName}">${serverName}</h3><p class="text-xs text-gray-400 truncate font-mono">${isMac ? 'MAC: ' + (acc.MAC || 'N/A') : 'User: ' + (acc.Username || 'N/A')}</p></div><div class="bg-gray-800/50 px-5 py-3 border-t border-gray-700/50 flex justify-between items-center"><div class="text-[10px] ${acc.Validade ? 'text-green-400' : 'text-gray-500'} font-bold"><i class="fa-regular fa-calendar-check"></i> ${formatDate(acc.Validade)}</div><button onclick="openModal(${originalIndex})" class="text-op-yellow text-xs font-bold hover:underline">Detalhes</button></div>`;
                 grid.appendChild(card);
             });
         }
@@ -908,7 +922,6 @@
             const resText = document.getElementById('liveResultText');
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
             btn.disabled = true;
-
             const acc = allAccounts[currentAccountIndex];
             let host = acc.Host;
             if (host && !host.startsWith('http')) { host = 'http://' + host; }
@@ -918,21 +931,16 @@
                 (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
                 (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`
             ];
-
             let success = false;
             for (let i = 0; i < proxies.length; i++) {
                 try {
                     const finalUrl = proxies[i](apiUrl);
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
-
+                    const timeoutId = setTimeout(() => controller.abort(), 5000);
                     const response = await fetch(finalUrl, { signal: controller.signal });
-                    
                     if (!response.ok) throw new Error(response.statusText);
-
                     const data = await response.json();
                     clearTimeout(timeoutId);
-
                     if (data.user_info) {
                         const active = data.user_info.active_cons || 0;
                         const max = data.user_info.max_connections || 0;
@@ -943,11 +951,8 @@
                         success = true;
                         break;
                     }
-                } catch (e) {
-                    // Falha silenciosa para tentar o próximo proxy
-                }
+                } catch (e) {}
             }
-
             if (!success) {
                 btn.classList.add('hidden');
                 resBox.classList.remove('hidden');
@@ -992,6 +997,7 @@
             if (event.target == document.getElementById('detailsModal')) closeModal();
             if (event.target == document.getElementById('tutorialModal')) closeTutorialModal();
         }
+
     </script>
 </body>
 </html>
