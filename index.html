@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Underground TV PT</title>
+    <title>Underground TV PT - Speed Demon</title>
     <!-- Favicon -->
     <link rel="icon" href="https://framagit.org/fiat-tux/hat-softwares/lufi/-/raw/master/themes/default/public/img/lufi.png">
     
@@ -88,11 +88,11 @@
                 <input type="file" id="fileInput" accept=".xlsx, .xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
                 <div class="space-y-3 pointer-events-none">
                     <div class="w-14 h-14 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto group-hover:bg-op-yellow group-hover:text-dark transition-colors border border-gray-600">
-                        <i class="fa-solid fa-file-excel text-2xl text-white group-hover:text-dark"></i>
+                        <i class="fa-solid fa-bolt text-2xl text-white group-hover:text-dark"></i>
                     </div>
                     <div>
                         <h3 class="text-lg font-semibold text-white">Carregar ficheiro Excel</h3>
-                        <p class="text-xs text-gray-300 mt-1">Arrasta ou clica para selecionar</p>
+                        <p class="text-xs text-gray-300 mt-1">Modo Turbo ativado para grandes listas</p>
                     </div>
                 </div>
             </div>
@@ -120,7 +120,8 @@
             
             <div id="loadingIndicator" class="hidden">
                 <i class="fa-solid fa-circle-notch fa-spin text-op-yellow text-3xl"></i>
-                <p class="mt-2 text-sm text-gray-300 font-bold">A processar tesouros...</p>
+                <p class="mt-2 text-sm text-gray-300 font-bold">A processar dados no Web Worker...</p>
+                <p class="text-[10px] text-gray-500">Isto não irá bloquear o browser</p>
             </div>
         </div>
     </div>
@@ -139,14 +140,14 @@
 
                 <!-- BARRA DE PESQUISA -->
                 <div class="relative w-full max-w-md">
-                    <input type="text" id="searchInput" placeholder="Pesquisar servidor, user ou grupo..." 
+                    <input type="text" id="searchInput" placeholder="Pesquisar em 40k+ contas..." 
                         class="w-full bg-gray-800 text-white rounded-full py-2 px-5 pl-10 focus:outline-none focus:ring-2 focus:ring-op-yellow border border-gray-700 shadow-inner">
                     <i class="fa-solid fa-search absolute left-3.5 top-3 text-gray-400"></i>
                 </div>
 
                 <div class="flex items-center gap-3">
                     <button onclick="openTutorialModal()" class="bg-op-yellow text-dark px-4 py-1.5 rounded-full text-xs font-bold hover:bg-white transition-all shadow-lg flex items-center gap-2">
-                        <i class="fa-solid fa-circle-info"></i> Guia de Apps
+                        <i class="fa-solid fa-circle-info"></i> Guia
                     </button>
                     <div class="text-sm font-semibold bg-op-yellow/10 text-op-yellow px-4 py-1.5 rounded-full border border-op-yellow/20 hidden md:block">
                         <span id="totalCount">0</span> Contas
@@ -170,7 +171,7 @@
                         <option value="24" selected>24 por página</option>
                         <option value="48">48 por página</option>
                         <option value="96">96 por página</option>
-                        <option value="10000">Todas</option>
+                        <option value="10000">Listar Todas (Cuidado)</option>
                     </select>
                 </div>
             </div>
@@ -201,7 +202,7 @@
         </main>
 
         <footer class="border-t border-gray-800 py-6 text-center text-gray-600 text-xs mt-auto">
-            <p>Leitor de Excel Standalone • Dashboard v4.5 • Desenvolvido para Underground TV PT</p>
+            <p>Leitor de Excel Otimizado • Dashboard v5.0 • Desenvolvido para Underground TV PT</p>
         </footer>
     </div>
 
@@ -221,6 +222,17 @@
 
             <div class="p-6 space-y-5 overflow-y-auto custom-scrollbar">
                 
+                <!-- AVISO DE VPN / GEOLOCK -->
+                <div id="vpnWarningBox" class="hidden animate-pulse">
+                    <div class="bg-red-500/10 border border-red-500/50 rounded-lg p-3 flex items-start gap-3">
+                        <i class="fa-solid fa-shield-halved text-red-500 text-xl mt-0.5"></i>
+                        <div>
+                            <h4 class="text-red-500 font-bold text-sm uppercase tracking-wider">Geolock Detectado</h4>
+                            <p class="text-xs text-gray-300 mt-1">Este servidor requer o uso de uma <span class="text-white font-bold">VPN</span> para funcionar corretamente em algumas regiões.</p>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="space-y-4">
                     <div class="group">
                         <label class="text-[10px] text-gray-400 uppercase font-bold tracking-wider ml-1 mb-1 block">Host URL</label>
@@ -416,6 +428,71 @@
         let itemsPerPage = 24;
         const DEFAULT_FILENAME = 'Resultados_Finais.xlsx';
 
+        // --- WEB WORKER PARA CARREGAMENTO ASSÍNCRONO (NÃO BLOQUEIA A UI) ---
+        const workerScript = `
+            importScripts('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+            
+            self.onmessage = function(e) {
+                const data = e.data;
+                try {
+                    const workbook = XLSX.read(new Uint8Array(data), { type: 'array' });
+                    let results = [];
+                    
+                    workbook.SheetNames.forEach(sheet => {
+                        const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheet]);
+                        results = results.concat(jsonData);
+                    });
+                    
+                    // Pré-processamento: Cria string de pesquisa indexada para velocidade extrema
+                    const optimizedResults = results.map(acc => {
+                        // Limpeza básica
+                        if (!acc.Host && !acc.Username && !acc.MAC) return null;
+                        
+                        // Indexação para pesquisa instantânea
+                        const searchStr = (
+                            (acc.Host || '') + ' ' + 
+                            (acc.Username || '') + ' ' + 
+                            (acc.MAC || '') + ' ' + 
+                            (acc['Grupos Live'] || '')
+                        ).toLowerCase();
+                        
+                        // Normalização do tipo
+                        const rawType = (acc.Tipo || '').toLowerCase();
+                        const isMac = rawType.includes('mac') || rawType.includes('stalker');
+                        
+                        return { ...acc, _search: searchStr, _isMac: isMac };
+                    }).filter(item => item !== null);
+                    
+                    // Ordenação por Validade (recente primeiro)
+                    optimizedResults.sort((a, b) => {
+                        const getTs = (v) => v ? new Date(v).getTime() : 0;
+                        return getTs(b.Validade) - getTs(a.Validade);
+                    });
+
+                    postMessage({ success: true, data: optimizedResults });
+                } catch (err) {
+                    postMessage({ success: false, error: err.message });
+                }
+            };
+        `;
+
+        const workerBlob = new Blob([workerScript], { type: 'application/javascript' });
+        const worker = new Worker(URL.createObjectURL(workerBlob));
+
+        worker.onmessage = function(e) {
+            const response = e.data;
+            document.getElementById('loadingIndicator').classList.add('hidden');
+            
+            if (response.success) {
+                allAccounts = response.data;
+                filteredAccounts = [...allAccounts];
+                showDashboard();
+                showToast(`Carregadas ${allAccounts.length} contas!`, false);
+            } else {
+                showToast("Erro ao processar ficheiro: " + response.error, true);
+            }
+        };
+
         window.onload = async () => {
             try {
                 const response = await fetch(DEFAULT_FILENAME);
@@ -438,38 +515,27 @@
             const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
             if (match && match[1]) url = 'https://corsproxy.io/?' + encodeURIComponent(`https://docs.google.com/spreadsheets/d/${match[1]}/export?format=xlsx`);
             else { showToast("Link inválido.", true); return; }
+            
             document.getElementById('loadingIndicator').classList.remove('hidden');
             try {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error();
                 processFile(await response.blob());
                 input.value = ''; 
-                showToast("Google Sheet carregado!", false);
-            } catch (error) { showToast("Erro no carregamento.", true); }
-            finally { document.getElementById('loadingIndicator').classList.add('hidden'); }
+            } catch (error) { 
+                showToast("Erro no carregamento.", true); 
+                document.getElementById('loadingIndicator').classList.add('hidden');
+            }
         }
 
         function processFile(file) {
             if(!file) return;
             document.getElementById('loadingIndicator').classList.remove('hidden');
+            
+            // Envia para o Web Worker (Background Thread)
             const reader = new FileReader();
             reader.onload = (e) => {
-                try {
-                    const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-                    allAccounts = [];
-                    workbook.SheetNames.forEach(sheet => {
-                        XLSX.utils.sheet_to_json(workbook.Sheets[sheet]).forEach(row => {
-                            if (row.Host || row.Username || row.MAC) allAccounts.push(row);
-                        });
-                    });
-                    allAccounts.sort((a, b) => {
-                        const getTs = (v) => v ? new Date(v).getTime() : 0;
-                        return getTs(b.Validade) - getTs(a.Validade);
-                    });
-                    filteredAccounts = [...allAccounts];
-                    showDashboard();
-                } catch (err) { showToast("Erro ao ler Excel", true); }
-                finally { document.getElementById('loadingIndicator').classList.add('hidden'); }
+                worker.postMessage(e.target.result);
             };
             reader.readAsArrayBuffer(file);
         }
@@ -507,24 +573,35 @@
             window.scrollTo({top: 0, behavior: 'smooth'});
         }
 
+        // --- DEBOUNCE NA PESQUISA (OTIMIZAÇÃO CRÍTICA PARA 40k) ---
+        let debounceTimer;
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                currentPage = 1;
+                renderCards(e.target.value);
+            }, 300); // Aguarda 300ms após parar de escrever
+        });
+
         function renderCards(term = '') {
             term = term.toLowerCase();
+            
+            // Filtro Otimizado usando a string pré-indexada pelo Worker
             filteredAccounts = allAccounts.filter(acc => {
-                const host = (acc.Host || '').toLowerCase();
-                const user = (acc.Username || '').toString().toLowerCase();
-                const mac = (acc.MAC || '').toLowerCase();
-                const groups = (acc['Grupos Live'] || '').toLowerCase();
-                const matchesSearch = host.includes(term) || user.includes(term) || mac.includes(term) || groups.includes(term);
-                if (!matchesSearch) return false;
-                const note = (acc.Tipo || '').toLowerCase();
-                const isMac = note.includes('mac') || note.includes('stalker');
-                if (currentFilter === 'xtream' && isMac) return false;
-                if (currentFilter === 'mac' && !isMac) return false;
+                // 1. Pesquisa de Texto (Rápida)
+                if (term && !acc._search.includes(term)) return false;
+                
+                // 2. Filtro de Tipo (Rápido)
+                if (currentFilter === 'xtream' && acc._isMac) return false;
+                if (currentFilter === 'mac' && !acc._isMac) return false;
+                
                 return true;
             });
+
             document.getElementById('totalCount').innerText = filteredAccounts.length;
             document.getElementById('noResults').classList.toggle('hidden', filteredAccounts.length > 0);
             document.getElementById('paginationContainer').classList.toggle('hidden', filteredAccounts.length === 0);
+            
             renderGridOnly();
             updatePaginationControls();
         }
@@ -532,11 +609,20 @@
         function renderGridOnly() {
             const grid = document.getElementById('gridContainer');
             grid.innerHTML = '';
+            
             const start = (currentPage - 1) * itemsPerPage;
-            filteredAccounts.slice(start, start + itemsPerPage).forEach((acc) => {
-                const originalIndex = allAccounts.indexOf(acc);
-                const isMac = (acc.Tipo || '').toLowerCase().includes('mac') || (acc.Tipo || '').toLowerCase().includes('stalker');
+            // Slice é rápido, apenas renderiza o que é visível
+            const itemsToShow = filteredAccounts.slice(start, start + itemsPerPage);
+            
+            itemsToShow.forEach((acc) => {
+                // Encontra índice original para referência no modal
+                // (Nota: findIndex pode ser lento, mas apenas em 24 itens é irrelevante)
+                // Otimização: Poderíamos passar o objeto direto para o openModal, mas o indice é usado
+                const originalIndex = allAccounts.indexOf(acc); 
+                
+                const isMac = acc._isMac;
                 const serverName = (acc.Host && acc.Host.startsWith('http')) ? new URL(acc.Host).hostname : (acc.Host || 'Servidor');
+                
                 const card = document.createElement('div');
                 card.className = "bg-card rounded-xl border border-gray-700/50 hover:shadow-xl transition-all flex flex-col justify-between overflow-hidden card-animate group h-full";
                 card.innerHTML = `
@@ -547,7 +633,7 @@
                             </div>
                             <span class="text-[10px] font-bold tracking-wider text-gray-500 bg-gray-900/50 px-2 py-1 rounded border border-gray-800">${isMac ? 'MAC' : 'XTREAM'}</span>
                         </div>
-                        <h3 class="font-bold text-gray-100 mb-1 truncate text-base">${serverName}</h3>
+                        <h3 class="font-bold text-gray-100 mb-1 truncate text-base" title="${serverName}">${serverName}</h3>
                         <p class="text-xs text-gray-400 truncate font-mono">${isMac ? 'MAC: ' + (acc.MAC || 'N/A') : 'User: ' + (acc.Username || 'N/A')}</p>
                     </div>
                     <div class="bg-gray-800/50 px-5 py-3 border-t border-gray-700/50 flex justify-between items-center">
@@ -578,18 +664,30 @@
         function openModal(index) {
             currentAccountIndex = index;
             const acc = allAccounts[index];
-            const isMac = (acc.Tipo || '').toLowerCase().includes('mac');
+            const isMac = acc._isMac;
+            
             const modal = document.getElementById('detailsModal');
             document.body.style.overflow = 'hidden';
-            document.getElementById('modalTitle').innerText = (acc.Host && acc.Host.startsWith('http')) ? new URL(acc.Host).hostname : acc.Host;
+            
+            const hostDisplay = (acc.Host && acc.Host.startsWith('http')) ? new URL(acc.Host).hostname : acc.Host;
+            document.getElementById('modalTitle').innerText = hostDisplay;
             document.getElementById('modalHost').value = acc.Host || '';
             document.getElementById('modalUser').value = acc.Username || '';
             document.getElementById('modalPass').value = acc.Password || '';
             document.getElementById('modalExp').innerText = formatDate(acc.Validade) || 'Indefinido';
+
+            // --- LÓGICA DE VPN / GEOLOCK ---
+            const geolockValue = (acc.Geolocked || acc.VPN || acc.Geo || '').toString().toLowerCase();
+            const isGeolocked = geolockValue === 'sim' || geolockValue === 'yes' || geolockValue === 'true' || geolockValue === '1';
+            const vpnBox = document.getElementById('vpnWarningBox');
+            if (isGeolocked) vpnBox.classList.remove('hidden');
+            else vpnBox.classList.add('hidden');
+
             document.getElementById('btnCheckLive').classList.remove('hidden');
             document.getElementById('liveResult').classList.add('hidden');
             const groupsContainer = document.getElementById('modalGroupsContainer');
             groupsContainer.innerHTML = '';
+            
             if (isMac) {
                 document.getElementById('macSection').classList.remove('hidden');
                 document.getElementById('modalMac').value = acc.MAC || '';
@@ -602,6 +700,7 @@
                 document.getElementById('m3uSection').classList.remove('hidden');
                 let h = acc.Host.startsWith('http') ? acc.Host : 'http://' + acc.Host;
                 document.getElementById('modalM3u').value = `${h}/get.php?username=${acc.Username}&password=${acc.Password}&type=m3u_plus&output=ts`;
+                
                 const gruposStr = acc['Grupos Live'] || '';
                 if (gruposStr && gruposStr !== 'Nenhum grupo encontrado') {
                     const lista = gruposStr.split(',').map(g => g.trim()).filter(g => g);
@@ -609,7 +708,13 @@
                         const badge = document.createElement('span');
                         badge.className = "px-2 py-0.5 bg-op-yellow/10 border border-op-yellow/30 text-op-yellow text-[10px] rounded-md font-medium uppercase tracking-tight cursor-help hover:bg-op-yellow hover:text-dark transition-all";
                         badge.innerText = g;
-                        badge.onclick = () => { document.getElementById('searchInput').value = g; renderCards(g); closeModal(); };
+                        badge.onclick = () => { 
+                            document.getElementById('searchInput').value = g; 
+                            // Dispara o evento de input manualmente ou chama render direto
+                            currentPage = 1;
+                            renderCards(g); 
+                            closeModal(); 
+                        };
                         groupsContainer.appendChild(badge);
                     });
                 } else { groupsContainer.innerHTML = '<span class="text-xs text-gray-500 italic p-1">Grupos não catalogados</span>'; }
@@ -618,7 +723,6 @@
             setTimeout(() => { modal.classList.remove('opacity-0'); document.getElementById('modalContent').classList.add('scale-100'); }, 10);
         }
 
-        // --- SISTEMA DE VERIFICAÇÃO COM PROXY FALLBACK ---
         async function checkLiveConnectionsInModal() {
             const btn = document.getElementById('btnCheckLive');
             const resBox = document.getElementById('liveResult');
@@ -633,8 +737,7 @@
             const proxies = [
                 (url) => url,
                 (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-                (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-                (url) => `https://thingproxy.freeboard.io/fetch/${url}`
+                (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
             ];
 
             let success = false;
@@ -697,6 +800,14 @@
         function showToast(msg, isError) {
             const t = document.getElementById('toast');
             document.getElementById('toastMessage').innerText = msg;
+            
+            // Estilo visual erro vs sucesso
+            if (isError) {
+                t.className = "fixed bottom-6 right-6 z-50 transform transition-all duration-300 bg-gray-800 border-l-4 border-red-500 text-white px-6 py-4 rounded shadow-2xl flex items-center gap-4";
+            } else {
+                t.className = "fixed bottom-6 right-6 z-50 transform transition-all duration-300 bg-gray-800 border-l-4 border-green-500 text-white px-6 py-4 rounded shadow-2xl flex items-center gap-4";
+            }
+            
             t.classList.remove('translate-y-32');
             setTimeout(() => t.classList.add('translate-y-32'), 3000);
         }
@@ -724,10 +835,6 @@
 
         function openPlaylistLink() { window.open(document.getElementById('modalM3u').value, '_blank'); }
 
-        document.getElementById('searchInput').addEventListener('input', (e) => {
-            currentPage = 1;
-            renderCards(e.target.value);
-        });
     </script>
 </body>
 </html>
