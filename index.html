@@ -813,7 +813,8 @@
             if (driveMatch && driveMatch[1]) {
                 const fileId = driveMatch[1];
                 if (rawUrl.includes('spreadsheets')) {
-                    fetchUrl = `https://docs.google.com/spreadsheets/d/${fileId}/export?format=csv`;
+                    // FIX: Alterado de 'csv' para 'xlsx' para suportar múltiplas folhas
+                    fetchUrl = `https://docs.google.com/spreadsheets/d/${fileId}/export?format=xlsx`;
                 } else {
                     fetchUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
                 }
@@ -849,7 +850,7 @@
                     }
 
                     if (rawUrl.toLowerCase().endsWith('.json') || fetchUrl.toLowerCase().endsWith('.json')) detectedType = 'json';
-                    else if (rawUrl.toLowerCase().endsWith('.csv') || fetchUrl.includes('format=csv')) detectedType = 'csv';
+                    else if (rawUrl.toLowerCase().endsWith('.csv')) detectedType = 'csv';
                     else detectedType = 'excel';
                     
                     success = true;
