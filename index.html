@@ -165,7 +165,7 @@
             <div id="loadingIndicator" class="hidden">
                 <i class="fa-solid fa-circle-notch fa-spin text-op-yellow text-3xl"></i>
                 <p class="mt-2 text-sm text-gray-300 font-bold">A processar e guardar dados...</p>
-                <p class="text-[10px] text-gray-500">Isto não irá bloquear o browser</p>
+                <p id="loadingTextDetail" class="text-[10px] text-gray-500">Isto não irá bloquear o browser</p>
             </div>
         </div>
     </div>
@@ -793,7 +793,7 @@
             });
         });
 
-        // --- LÓGICA DE CARREGAMENTO (AGORA COM SUPORTE A BACKGROUND SYNC) ---
+        // --- LÓGICA DE CARREGAMENTO (OTIMIZADA) ---
         async function loadFromUrl(isBackground = false) {
             const input = document.getElementById('gSheetInput');
             let rawUrl = input.value.trim();
@@ -805,6 +805,7 @@
             // Só mostrar loading se NÃO for background
             if (!isBackground) {
                 document.getElementById('loadingIndicator').classList.remove('hidden');
+                document.getElementById('loadingTextDetail').innerText = "A tentar conectar ao Google...";
             }
             
             let fetchUrl = rawUrl;
@@ -813,17 +814,19 @@
             if (driveMatch && driveMatch[1]) {
                 const fileId = driveMatch[1];
                 if (rawUrl.includes('spreadsheets')) {
-                    // FIX: Alterado de 'csv' para 'xlsx' para suportar múltiplas folhas
+                    // FIX: Alterado para 'xlsx' e removido redirecionamentos
                     fetchUrl = `https://docs.google.com/spreadsheets/d/${fileId}/export?format=xlsx`;
                 } else {
-                    fetchUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+                    // FIX: Adicionado &confirm=no_antivirus para tentar bypassar aviso de virus
+                    fetchUrl = `https://drive.google.com/uc?export=download&id=${fileId}&confirm=no_antivirus`;
                 }
             }
 
+            // LISTA DE PROXIES OTIMIZADA (CorsProxy.io é o mais rápido)
             const proxies = [
+                (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
                 (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-                (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-                (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`
+                (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
             ];
 
             let success = false;
@@ -831,19 +834,26 @@
             let detectedType = null;
 
             for (const proxyGen of proxies) {
+                if (!isBackground) document.getElementById('loadingTextDetail').innerText = "A tentar servidor alternativo...";
                 try {
                     const target = proxyGen(fetchUrl);
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 10000);
+                    // REDUZIDO TIMEOUT PARA 5s (falha rápido e tenta o próximo)
+                    const timeoutId = setTimeout(() => controller.abort(), 5000);
+                    
                     const response = await fetch(target, { signal: controller.signal });
                     clearTimeout(timeoutId);
 
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     
                     const blob = await response.blob();
+                    // Verificação de segurança: Se retornou HTML (ex: página de erro do Google ou Login)
                     if (blob.type.includes('text/html')) {
                          const text = await blob.text();
-                         if(text.trim().toLowerCase().startsWith('<!doctype html') || text.includes('drive.google.com')) throw new Error("HTML recebido");
+                         if(text.trim().toLowerCase().startsWith('<!doctype html') || text.includes('drive.google.com') || text.includes('accounts.google.com')) {
+                             throw new Error("HTML recebido (possível bloqueio ou erro)");
+                         }
+                         // Se passou, talvez seja um CSV mal identificado
                          finalData = new Blob([text], {type: blob.type});
                     } else {
                         finalData = blob;
@@ -854,8 +864,10 @@
                     else detectedType = 'excel';
                     
                     success = true;
-                    break;
-                } catch (e) { console.warn("Proxy falhou:", e); }
+                    break; // Se funcionou, sai do loop
+                } catch (e) { 
+                    console.warn("Proxy falhou, a tentar próximo:", e); 
+                }
             }
 
             if (success && finalData) {
@@ -864,15 +876,16 @@
                 
                 window.isBackgroundUpdate = isBackground;
                 window.isUrlSource = true;
+                
+                if (!isBackground) document.getElementById('loadingTextDetail').innerText = "Processando ficheiro...";
                 processFile(finalData, detectedType);
                 input.value = '';
             } else {
-                if(!isBackground) showToast("Erro ao importar. Verifica o link e permissões.", true);
+                if(!isBackground) showToast("Erro ao importar. O Google pode estar a bloquear o link.", true);
                 // Se falhar no background, atualiza o status para erro
                 if(isBackground) document.getElementById('dataStatusMsg').innerHTML = `<i class="fa-solid fa-triangle-exclamation text-yellow-500"></i> Erro Sync`;
+                document.getElementById('loadingIndicator').classList.add('hidden');
             }
-            
-            document.getElementById('loadingIndicator').classList.add('hidden');
         }
 
         function processFile(file, forceType = null) {
