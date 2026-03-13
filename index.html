@@ -158,6 +158,10 @@
                 </div>
 
                 <div class="flex items-center gap-3">
+                    <!-- BOTÃO APAGAR DADOS -->
+                    <button onclick="clearLocalData()" class="bg-red-600/80 hover:bg-red-500 text-white px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-lg flex items-center gap-2">
+                        <i class="fa-solid fa-trash"></i> Sair / Apagar
+                    </button>
                     <!-- BOTÃO GUIA DE APPS -->
                     <button onclick="openTutorialModal()" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-lg flex items-center gap-2">
                         <i class="fa-solid fa-circle-info"></i> Guia
@@ -499,7 +503,58 @@
         let currentAccountIndex = -1;
         let currentPage = 1;
         let itemsPerPage = 24;
-        const DEFAULT_FILENAME = 'Resultados_Finais.xlsx';
+
+        // --- NOVO: LÓGICA DE ARMAZENAMENTO LOCAL (IndexedDB) ---
+        // Usamos IndexedDB porque o localStorage tem limite de 5MB e 40k contas ultrapassam esse limite.
+        const DB_NAME = 'UndergroundTV_DB';
+        const STORE_NAME = 'accountsStore';
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME);
+                    }
+                };
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function saveToLocal(data) {
+            try {
+                const db = await initDB();
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                tx.objectStore(STORE_NAME).put(data, 'myAccounts');
+            } catch(e) { console.error("Erro ao guardar dados localmente:", e); }
+        }
+
+        async function loadFromLocal() {
+            try {
+                const db = await initDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE_NAME, 'readonly');
+                    const request = tx.objectStore(STORE_NAME).get('myAccounts');
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            } catch(e) { console.error(e); return null; }
+        }
+
+        async function clearLocalData() {
+            if(!confirm("Queres apagar os dados guardados no teu browser? Terás de fazer upload novamente.")) return;
+            try {
+                const db = await initDB();
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                tx.objectStore(STORE_NAME).delete('myAccounts');
+                allAccounts = [];
+                filteredAccounts = [];
+                resetApp();
+                showToast("Dados locais apagados com sucesso.", false);
+            } catch(e) { console.error(e); }
+        }
 
         // --- 3. WORKER SCRIPT ---
         const workerScript = `
@@ -565,14 +620,15 @@
         const worker = new Worker(URL.createObjectURL(workerBlob));
 
         // --- 4. EVENT LISTENERS & LÓGICA ---
-        worker.onmessage = function(e) {
+        worker.onmessage = async function(e) {
             const response = e.data;
             document.getElementById('loadingIndicator').classList.add('hidden');
             if (response.success) {
                 allAccounts = response.data;
                 filteredAccounts = [...allAccounts];
+                await saveToLocal(allAccounts); // Guarda no browser do utilizador!
                 showDashboard();
-                showToast(`Sucesso! ${allAccounts.length} contas carregadas.`, false);
+                showToast(`Sucesso! ${allAccounts.length} contas guardadas no teu browser.`, false);
             } else {
                 showToast("Erro: " + response.error, true);
             }
@@ -580,22 +636,16 @@
 
         window.onload = async () => {
             try {
-                // Verificação silenciosa com Cache Busting (Vital para GitHub Pages)
-                // O '?v=' + tempo impede que o browser use uma versão antiga do Excel
-                const cacheBuster = '?v=' + new Date().getTime();
-                const fileUrl = DEFAULT_FILENAME + cacheBuster;
-                
-                const response = await fetch(fileUrl, { method: 'HEAD' });
-                if (response.ok) {
-                    const blobResp = await fetch(fileUrl);
-                    const blob = await blobResp.blob();
-                    // Usar o nome original para a deteção do tipo funcionar corretamente
-                    const fileWithMeta = new File([blob], DEFAULT_FILENAME, { type: blob.type });
-                    processFile(fileWithMeta); 
+                // Tenta carregar dados guardados previamente no browser
+                const savedData = await loadFromLocal();
+                if (savedData && savedData.length > 0) {
+                    allAccounts = savedData;
+                    filteredAccounts = [...allAccounts];
+                    showDashboard();
+                    showToast(`Bem-vindo de volta! ${allAccounts.length} contas carregadas do browser.`, false);
                 }
             } catch (e) {
-                // Silencioso - ficheiro não existe, comportamento normal
-                console.log("Ficheiro local não encontrado ou bloqueado. Aguardando upload manual.");
+                console.log("Nenhuns dados locais encontrados. Aguardando upload.");
             }
         };
 
