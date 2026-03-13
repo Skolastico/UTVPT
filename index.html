@@ -4,14 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Underground TV PT - Flash Mode</title>
+    
+    <!-- Metadados para Partilha (Open Graph) -->
+    <meta name="description" content="Dashboard ultrarrápido para gestão e visualização de bases de dados.">
+    <meta property="og:title" content="Underground TV PT">
+    <meta property="og:description" content="Dashboard ultrarrápido para gestão e visualização de bases de dados.">
+    <meta property="og:image" content="https://framagit.org/fiat-tux/hat-softwares/lufi/-/raw/master/themes/default/public/img/lufi.png">
+    <meta property="og:type" content="website">
+
     <!-- Favicon -->
     <link rel="icon" href="https://framagit.org/fiat-tux/hat-softwares/lufi/-/raw/master/themes/default/public/img/lufi.png">
     
     <!-- Bibliotecas Externas (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- Adicionado LocalForage para Cache Robusta (IndexedDB) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Configuração Tailwind -->
@@ -59,14 +65,6 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
         
         .modal-open #mainDashboard { filter: blur(4px); pointer-events: none; }
-        
-        /* Loading Ring custom animation */
-        .lds-ring { display: inline-block; position: relative; width: 14px; height: 14px; }
-        .lds-ring div { box-sizing: border-box; display: block; position: absolute; width: 12px; height: 12px; margin: 1px; border: 2px solid #FFD700; border-radius: 50%; animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite; border-color: #FFD700 transparent transparent transparent; }
-        .lds-ring div:nth-child(1) { animation-delay: -0.45s; }
-        .lds-ring div:nth-child(2) { animation-delay: -0.3s; }
-        .lds-ring div:nth-child(3) { animation-delay: -0.15s; }
-        @keyframes lds-ring { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -91,10 +89,6 @@
                     Underground <span class="text-op-yellow">TV PT</span>
                 </h1>
                 <p class="text-gray-300 mt-2 font-medium drop-shadow-md">Dashboard de Gestão de Contas</p>
-                <!-- Indicador de Carregamento de Cache -->
-                <p id="cacheLoadingMsg" class="hidden text-op-yellow text-xs font-bold animate-pulse mt-2">
-                    <i class="fa-solid fa-database"></i> A verificar dados guardados...
-                </p>
             </div>
 
             <div class="file-drop-zone bg-card/60 backdrop-blur-md p-8 rounded-2xl cursor-pointer relative group border-gray-600 hover:border-op-yellow shadow-2xl transition-all" id="dropZone">
@@ -131,32 +125,6 @@
                 </div>
                 <p class="text-[10px] text-gray-400 mt-2 text-left ml-1">Suporta Google Drive, Sheets e Links Diretos (Raw).</p>
             </div>
-            
-            <!-- SECÇÃO DE RETOMA DE SESSÃO (NOVO) -->
-            <div id="resumeSection" class="hidden animate-float">
-                <div class="flex items-center gap-4 text-gray-400 text-sm mb-4">
-                    <div class="h-px bg-gray-600 flex-grow"></div>
-                    <span class="text-op-yellow font-bold text-xs uppercase tracking-widest">Sessão Guardada</span>
-                    <div class="h-px bg-gray-600 flex-grow"></div>
-                </div>
-
-                <button onclick="resumeDashboard()" class="w-full bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 border border-op-yellow/30 hover:border-op-yellow text-white p-4 rounded-xl shadow-lg transition-all group relative overflow-hidden">
-                    <div class="absolute inset-0 bg-op-yellow/5 group-hover:bg-op-yellow/10 transition-colors"></div>
-                    <div class="relative flex items-center justify-between">
-                        <div class="text-left">
-                            <h3 class="font-bold text-base flex items-center gap-2">
-                                <i class="fa-solid fa-rotate-right text-op-yellow"></i> Continuar Sessão
-                            </h3>
-                            <p class="text-xs text-gray-400 mt-1">
-                                Última atualização: <span id="lastUpdateDate" class="text-gray-300 font-mono">--/--/----</span>
-                            </p>
-                        </div>
-                        <div class="bg-dark/50 p-2 rounded-lg border border-gray-700 group-hover:border-op-yellow/50 transition-colors">
-                            <i class="fa-solid fa-chevron-right text-gray-400 group-hover:text-white"></i>
-                        </div>
-                    </div>
-                </button>
-            </div>
 
             <button id="btnBackToDash" onclick="returnToDashboard()" class="hidden px-6 py-2 bg-gray-700/80 hover:bg-gray-600 text-white rounded-full transition-colors flex items-center gap-2 mx-auto backdrop-blur-sm">
                 <i class="fa-solid fa-arrow-left"></i> Voltar ao Dashboard
@@ -164,8 +132,8 @@
             
             <div id="loadingIndicator" class="hidden">
                 <i class="fa-solid fa-circle-notch fa-spin text-op-yellow text-3xl"></i>
-                <p class="mt-2 text-sm text-gray-300 font-bold">A processar e guardar dados...</p>
-                <p id="loadingTextDetail" class="text-[10px] text-gray-500">Isto não irá bloquear o browser</p>
+                <p class="mt-2 text-sm text-gray-300 font-bold">A processar dados...</p>
+                <p class="text-[10px] text-gray-500">Isto não irá bloquear o browser</p>
             </div>
         </div>
     </div>
@@ -176,7 +144,7 @@
         <header class="sticky top-0 z-40 glass-effect border-b border-gray-700 shadow-lg">
             <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div class="flex items-center gap-3 w-full md:w-auto justify-between">
-                    <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.reload()">
+                    <div class="flex items-center gap-3 cursor-pointer" onclick="resetApp()">
                         <img src="https://framagit.org/fiat-tux/hat-softwares/lufi/-/raw/master/themes/default/public/img/lufi.png" class="w-8 h-8 object-contain">
                         <h1 class="text-xl font-bold tracking-wider">Underground <span class="text-op-yellow">TV PT</span></h1>
                     </div>
@@ -190,26 +158,13 @@
                 </div>
 
                 <div class="flex items-center gap-3">
-                    
-                    <!-- CONTADOR TOTAL (RESTAURADO) -->
-                    <div class="text-sm font-semibold bg-op-yellow/10 text-op-yellow px-4 py-1.5 rounded-full border border-op-yellow/20 hidden xl:block">
-                        <span id="totalCount">0</span> Contas
-                    </div>
-
-                    <!-- BOTÃO ATUALIZAR LISTA -->
-                    <button onclick="triggerUpdateUpload()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-lg flex items-center gap-2 border border-blue-400/30" title="Carregar novo ficheiro e substituir o atual">
-                        <i class="fa-solid fa-cloud-arrow-up"></i> <span class="hidden sm:inline">Atualizar Lista</span>
-                    </button>
-
                     <!-- BOTÃO GUIA DE APPS -->
-                    <button onclick="openTutorialModal()" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-lg flex items-center gap-2 hidden md:flex">
+                    <button onclick="openTutorialModal()" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-lg flex items-center gap-2">
                         <i class="fa-solid fa-circle-info"></i> Guia
                     </button>
-                    
-                    <!-- BOTÃO SAIR / LIMPAR CACHE -->
-                    <button onclick="clearCacheAndLogout()" class="bg-red-500/20 hover:bg-red-500/40 text-red-400 px-4 py-1.5 rounded-full text-xs font-bold transition-all border border-red-500/30 flex items-center gap-2" title="Limpar dados guardados">
-                        <i class="fa-solid fa-right-from-bracket"></i>
-                    </button>
+                    <div class="text-sm font-semibold bg-op-yellow/10 text-op-yellow px-4 py-1.5 rounded-full border border-op-yellow/20 hidden md:block">
+                        <span id="totalCount">0</span> Contas
+                    </div>
                 </div>
             </div>
         </header>
@@ -251,11 +206,7 @@
                         <button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-gray-800 text-gray-400 hover:text-white text-sm font-medium border border-gray-700" onclick="filterType('mac', this)">Stalker / MAC</button>
                     </div>
                     
-                    <!-- INFO DE STATUS DE DADOS E SYNC -->
                     <div class="flex items-center gap-3">
-                        <div class="text-xs flex items-center gap-2" id="dataStatusMsg">
-                            <!-- Injetado via JS -->
-                        </div>
                         <select id="itemsPerPageSelect" onchange="changeItemsPerPage(this.value)" class="bg-gray-800 text-gray-300 text-xs rounded-lg px-3 py-2 border border-gray-700 focus:outline-none">
                             <option value="12">12 por página</option>
                             <option value="24" selected>24 por página</option>
@@ -266,14 +217,7 @@
                     </div>
                 </div>
 
-                <!-- OVERLAY DE CARREGAMENTO NO DASHBOARD -->
-                <div id="dashLoadingOverlay" class="hidden absolute inset-0 z-50 bg-dark/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl">
-                     <i class="fa-solid fa-rotate fa-spin text-op-yellow text-4xl mb-3"></i>
-                     <h3 class="text-white font-bold text-lg">A atualizar base de dados...</h3>
-                     <p class="text-gray-400 text-sm">A processar o novo ficheiro.</p>
-                </div>
-
-                <div id="gridContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-6 relative"></div>
+                <div id="gridContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-6"></div>
                 
                 <div id="noResults" class="hidden text-center py-20">
                     <i class="fa-solid fa-skull-crossbones text-6xl text-gray-700 mb-4 animate-pulse"></i>
@@ -556,9 +500,6 @@
         let currentPage = 1;
         let itemsPerPage = 24;
         const DEFAULT_FILENAME = 'Resultados_Finais.xlsx';
-        const DB_KEY = 'ugtv_db'; // Chave para os dados
-        const DB_SOURCE_URL = 'ugtv_source_url'; // Chave para o link de origem
-        const DB_TIMESTAMP_KEY = 'ugtv_last_update'; // Chave para o timestamp
 
         // --- 3. WORKER SCRIPT ---
         const workerScript = `
@@ -627,145 +568,36 @@
         worker.onmessage = function(e) {
             const response = e.data;
             document.getElementById('loadingIndicator').classList.add('hidden');
-            document.getElementById('dashLoadingOverlay').classList.add('hidden'); // Esconder overlay do dashboard
-
             if (response.success) {
                 allAccounts = response.data;
                 filteredAccounts = [...allAccounts];
-                
-                // SALVAR NO INDEXEDDB (Cache) E TIMESTAMP
-                const now = new Date();
-                localforage.setItem(DB_KEY, allAccounts)
-                    .then(() => localforage.setItem(DB_TIMESTAMP_KEY, now))
-                    .then(() => {
-                         // Se não estamos no modo Background Update, mostrar aviso
-                         if (!window.isBackgroundUpdate) {
-                            showToast(`Base de dados atualizada!`, false);
-                         } else {
-                            showToast(`Lista sincronizada com a nuvem!`, false);
-                            updateStatusMsg(true);
-                         }
-                         window.isBackgroundUpdate = false;
-                         
-                         // Se for ficheiro local (não URL), definimos msg manual
-                         if (!window.isUrlSource) {
-                             document.getElementById('dataStatusMsg').innerHTML = `<i class="fa-solid fa-file-import text-gray-400"></i> Ficheiro Local (${allAccounts.length})`;
-                         }
-                    })
-                    .catch((err) => console.error("Erro ao salvar cache:", err));
-
                 showDashboard();
-                if(!window.isBackgroundUpdate) {
-                    showToast(`Sucesso! ${allAccounts.length} contas carregadas.`, false);
-                }
+                showToast(`Sucesso! ${allAccounts.length} contas carregadas.`, false);
             } else {
                 showToast("Erro: " + response.error, true);
             }
         };
 
-        // --- CONFIGURAÇÃO DO LOCALFORAGE ---
-        localforage.config({
-            name: 'UndergroundTV_DB',
-            storeName: 'accounts_store'
-        });
-
-        // --- INICIALIZAÇÃO COM VERIFICAÇÃO DE CACHE E BOTÃO DE RETOMA ---
         window.onload = async () => {
-            // 1. Tentar carregar do Cache (IndexedDB)
             try {
-                document.getElementById('cacheLoadingMsg').classList.remove('hidden');
+                // Verificação silenciosa com Cache Busting (Vital para GitHub Pages)
+                // O '?v=' + tempo impede que o browser use uma versão antiga do Excel
+                const cacheBuster = '?v=' + new Date().getTime();
+                const fileUrl = DEFAULT_FILENAME + cacheBuster;
                 
-                // Carregar Dados
-                const cachedData = await localforage.getItem(DB_KEY);
-                // Carregar URL de Origem (se existir)
-                const cachedUrl = await localforage.getItem(DB_SOURCE_URL);
-                // Carregar Timestamp
-                const cachedTime = await localforage.getItem(DB_TIMESTAMP_KEY);
-
-                if (cachedData && Array.isArray(cachedData) && cachedData.length > 0) {
-                    console.log("Cache encontrado:", cachedData.length, "items");
-                    allAccounts = cachedData;
-                    filteredAccounts = [...allAccounts];
-                    
-                    // LÓGICA DE BOTÃO DE SESSÃO
-                    const resumeSection = document.getElementById('resumeSection');
-                    const lastUpdateEl = document.getElementById('lastUpdateDate');
-                    
-                    if (cachedTime) {
-                        const d = new Date(cachedTime);
-                        lastUpdateEl.innerText = `${d.toLocaleDateString('pt-PT')} ${d.toLocaleTimeString('pt-PT').slice(0,5)}`;
-                    } else {
-                        lastUpdateEl.innerText = "Desconhecido";
-                    }
-
-                    resumeSection.classList.remove('hidden');
-                    
-                    if (cachedUrl) {
-                        // Preencher input invisivelmente para uso futuro
-                        document.getElementById('gSheetInput').value = cachedUrl; 
-                        document.getElementById('dataStatusMsg').innerHTML = `<i class="fa-solid fa-cloud text-blue-400"></i> Sincronizado (${allAccounts.length})`;
-                    } else {
-                        document.getElementById('dataStatusMsg').innerHTML = `<i class="fa-solid fa-database text-gray-400"></i> Dados em Cache (${allAccounts.length})`;
-                    }
-                    
-                    // NÃO Entra automaticamente no Dashboard
-                    // showDashboard();
-                    
-                    showToast(`Backup encontrado: ${allAccounts.length} contas.`, false);
-                    document.getElementById('cacheLoadingMsg').classList.add('hidden');
-                    return; 
+                const response = await fetch(fileUrl, { method: 'HEAD' });
+                if (response.ok) {
+                    const blobResp = await fetch(fileUrl);
+                    const blob = await blobResp.blob();
+                    // Usar o nome original para a deteção do tipo funcionar corretamente
+                    const fileWithMeta = new File([blob], DEFAULT_FILENAME, { type: blob.type });
+                    processFile(fileWithMeta); 
                 }
             } catch (e) {
-                console.error("Erro ao ler cache", e);
-            } finally {
-                document.getElementById('cacheLoadingMsg').classList.add('hidden');
+                // Silencioso - ficheiro não existe, comportamento normal
+                console.log("Ficheiro local não encontrado ou bloqueado. Aguardando upload manual.");
             }
-
-            // 2. Se não houver cache
-            try {
-                const response = await fetch(DEFAULT_FILENAME, { method: 'HEAD' });
-                if (response.ok) {
-                    const blobResp = await fetch(DEFAULT_FILENAME);
-                    const blob = await blobResp.blob();
-                    processFile(blob); 
-                }
-            } catch (e) {}
         };
-
-        function resumeDashboard() {
-            showDashboard();
-            showToast("Sessão restaurada com sucesso!", false);
-        }
-
-        function updateStatusMsg(isCloud) {
-            if(isCloud) {
-                document.getElementById('dataStatusMsg').innerHTML = `<i class="fa-solid fa-cloud text-blue-400"></i> Sincronizado (${allAccounts.length})`;
-            } else {
-                document.getElementById('dataStatusMsg').innerHTML = `<i class="fa-solid fa-database text-gray-400"></i> Dados Locais (${allAccounts.length})`;
-            }
-        }
-
-        // --- FUNÇÃO PARA LIMPAR CACHE ---
-        async function clearCacheAndLogout() {
-            if(confirm("Tem a certeza que deseja limpar os dados guardados e sair?")) {
-                try {
-                    await localforage.removeItem(DB_KEY);
-                    await localforage.removeItem(DB_SOURCE_URL); // Limpar também o URL
-                    await localforage.removeItem(DB_TIMESTAMP_KEY);
-                    window.location.reload(); 
-                } catch(e) {
-                    showToast("Erro ao limpar cache", true);
-                }
-            }
-        }
-
-        function triggerUpdateUpload() {
-            const input = document.getElementById('fileInput');
-            if(input) {
-                input.value = ''; 
-                input.click();
-            }
-        }
 
         const fileInput = document.getElementById('fileInput');
         fileInput.addEventListener('change', (e) => processFile(e.target.files[0]));
@@ -784,49 +616,58 @@
             }, 300);
         });
 
+        // --- CORREÇÃO DA PESQUISA DOS PORTAIS (Lógica Otimizada) ---
+        let portalSearchTimeout;
         document.getElementById('portalSearch').addEventListener('input', (e) => {
-            const term = e.target.value.toLowerCase();
-            const items = document.querySelectorAll('#portalList button');
-            items.forEach(item => {
-                if(item.innerText.toLowerCase().includes(term)) item.classList.remove('hidden');
-                else item.classList.add('hidden');
-            });
+            if (portalSearchTimeout) clearTimeout(portalSearchTimeout);
+            
+            portalSearchTimeout = setTimeout(() => {
+                const term = e.target.value.toLowerCase();
+                const items = document.getElementById('portalList').children;
+                
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
+                    // Ler o 'data-host' diretamente é muito mais rápido que ler o 'innerText' do DOM
+                    if (item.dataset.host && item.dataset.host.toLowerCase().includes(term)) {
+                        item.classList.remove('hidden');
+                    } else {
+                        item.classList.add('hidden');
+                    }
+                }
+            }, 150); // Debounce leve para evitar travagens ao escrever rápido
         });
 
-        // --- LÓGICA DE CARREGAMENTO (OTIMIZADA) ---
-        async function loadFromUrl(isBackground = false) {
+        // --- LÓGICA DE CARREGAMENTO (MELHORADA COM MÚLTIPLOS PROXIES) ---
+        async function loadFromUrl() {
             const input = document.getElementById('gSheetInput');
             let rawUrl = input.value.trim();
-            if (!rawUrl) { 
-                if(!isBackground) showToast("Insere um link válido.", true); 
-                return; 
-            }
+            if (!rawUrl) { showToast("Insere um link válido.", true); return; }
             
-            // Só mostrar loading se NÃO for background
-            if (!isBackground) {
-                document.getElementById('loadingIndicator').classList.remove('hidden');
-                document.getElementById('loadingTextDetail').innerText = "A tentar conectar ao Google...";
-            }
+            document.getElementById('loadingIndicator').classList.remove('hidden');
             
             let fetchUrl = rawUrl;
             // Google Drive / Sheets Logic
             const driveMatch = rawUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            
             if (driveMatch && driveMatch[1]) {
                 const fileId = driveMatch[1];
                 if (rawUrl.includes('spreadsheets')) {
-                    // FIX: Alterado para 'xlsx' e removido redirecionamentos
-                    fetchUrl = `https://docs.google.com/spreadsheets/d/${fileId}/export?format=xlsx`;
+                    fetchUrl = `https://docs.google.com/spreadsheets/d/${fileId}/export?format=csv`;
                 } else {
-                    // FIX: Adicionado &confirm=no_antivirus para tentar bypassar aviso de virus
-                    fetchUrl = `https://drive.google.com/uc?export=download&id=${fileId}&confirm=no_antivirus`;
+                    fetchUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
                 }
             }
 
-            // LISTA DE PROXIES OTIMIZADA (CorsProxy.io é o mais rápido)
+            // Updated Proxy List
             const proxies = [
-                (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+                // AllOrigins - JSON/Text friendly
                 (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-                (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
+                // CodeTabs - Robust
+                (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+                // CorsProxy.io - Popular but sometimes rate limits (403)
+                (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+                // Cors-Anywhere (Demo) - Last resort
+                (u) => `https://cors-anywhere.herokuapp.com/${u}` 
             ];
 
             let success = false;
@@ -834,77 +675,60 @@
             let detectedType = null;
 
             for (const proxyGen of proxies) {
-                if (!isBackground) document.getElementById('loadingTextDetail').innerText = "A tentar servidor alternativo...";
                 try {
                     const target = proxyGen(fetchUrl);
-                    const controller = new AbortController();
-                    // REDUZIDO TIMEOUT PARA 5s (falha rápido e tenta o próximo)
-                    const timeoutId = setTimeout(() => controller.abort(), 5000);
+                    console.log("Trying proxy:", target); // Debug help
                     
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout per proxy
+
                     const response = await fetch(target, { signal: controller.signal });
                     clearTimeout(timeoutId);
 
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     
                     const blob = await response.blob();
-                    // Verificação de segurança: Se retornou HTML (ex: página de erro do Google ou Login)
+                    
+                    // Check if we got an HTML error page (common with Drive download warnings)
                     if (blob.type.includes('text/html')) {
                          const text = await blob.text();
-                         if(text.trim().toLowerCase().startsWith('<!doctype html') || text.includes('drive.google.com') || text.includes('accounts.google.com')) {
-                             throw new Error("HTML recebido (possível bloqueio ou erro)");
+                         if(text.trim().toLowerCase().startsWith('<!doctype html') || text.includes('drive.google.com')) {
+                             // Google Drive might show a "Virus Scan" warning page for large files
+                             // If so, we can't bypass it easily via simple fetch without user interaction
+                             throw new Error("Recebido HTML (Bloqueio ou Aviso do Google)");
                          }
-                         // Se passou, talvez seja um CSV mal identificado
+                         // If it's valid JSON inside HTML? Unlikely.
+                         // But if it's CSV, it shouldn't be HTML.
                          finalData = new Blob([text], {type: blob.type});
                     } else {
                         finalData = blob;
                     }
 
+                    // Type detection
                     if (rawUrl.toLowerCase().endsWith('.json') || fetchUrl.toLowerCase().endsWith('.json')) detectedType = 'json';
-                    else if (rawUrl.toLowerCase().endsWith('.csv')) detectedType = 'csv';
+                    else if (rawUrl.toLowerCase().endsWith('.csv') || fetchUrl.includes('format=csv')) detectedType = 'csv';
                     else detectedType = 'excel';
                     
                     success = true;
-                    break; // Se funcionou, sai do loop
-                } catch (e) { 
-                    console.warn("Proxy falhou, a tentar próximo:", e); 
+                    break;
+                } catch (e) {
+                    console.warn("Proxy falhou:", e);
                 }
             }
 
             if (success && finalData) {
-                // SUCESSO! Guardar o URL para o futuro
-                localforage.setItem(DB_SOURCE_URL, rawUrl);
-                
-                window.isBackgroundUpdate = isBackground;
-                window.isUrlSource = true;
-                
-                if (!isBackground) document.getElementById('loadingTextDetail').innerText = "Processando ficheiro...";
                 processFile(finalData, detectedType);
                 input.value = '';
             } else {
-                if(!isBackground) showToast("Erro ao importar. O Google pode estar a bloquear o link.", true);
-                // Se falhar no background, atualiza o status para erro
-                if(isBackground) document.getElementById('dataStatusMsg').innerHTML = `<i class="fa-solid fa-triangle-exclamation text-yellow-500"></i> Erro Sync`;
-                document.getElementById('loadingIndicator').classList.add('hidden');
+                showToast("Erro ao importar. Verifica o link e permissões.", true);
             }
+            
+            document.getElementById('loadingIndicator').classList.add('hidden');
         }
 
         function processFile(file, forceType = null) {
             if(!file) return;
-            
-            // Se o utilizador carregou um ficheiro LOCAL (arrastou ou clicou),
-            // devemos remover o Auto-Update do URL antigo, pois ele decidiu usar outra fonte.
-            if (!window.isUrlSource) {
-                 localforage.removeItem(DB_SOURCE_URL);
-            }
-            // Resetar a flag para a próxima
-            window.isUrlSource = false;
-
-            if (!document.getElementById('uploadSection').classList.contains('hidden')) {
-                 document.getElementById('loadingIndicator').classList.remove('hidden');
-            } else if (!window.isBackgroundUpdate) {
-                 document.getElementById('dashLoadingOverlay').classList.remove('hidden');
-            }
-
+            document.getElementById('loadingIndicator').classList.remove('hidden');
             let type = 'excel';
             if (forceType) type = forceType;
             else if (file.name?.toLowerCase().endsWith('.json') || file.type === 'application/json') type = 'json';
@@ -984,17 +808,14 @@
                     const h = getHostName(acc.Host);
                     return h === currentPortalFilter;
                 });
-                document.getElementById('btnClearPortal')?.classList.remove('hidden');
+                document.getElementById('btnClearPortal').classList.remove('hidden');
             } else {
                 filteredAccounts = baseFiltered;
-                document.getElementById('btnClearPortal')?.classList.add('hidden');
+                document.getElementById('btnClearPortal').classList.add('hidden');
             }
-            
-            const totalCountEl = document.getElementById('totalCount');
-            if(totalCountEl) totalCountEl.innerText = filteredAccounts.length;
-            
-            document.getElementById('noResults')?.classList.toggle('hidden', filteredAccounts.length > 0);
-            document.getElementById('paginationContainer')?.classList.toggle('hidden', filteredAccounts.length === 0);
+            document.getElementById('totalCount').innerText = filteredAccounts.length;
+            document.getElementById('noResults').classList.toggle('hidden', filteredAccounts.length > 0);
+            document.getElementById('paginationContainer').classList.toggle('hidden', filteredAccounts.length === 0);
             document.querySelectorAll('#portalList button').forEach(btn => {
                 if (btn.dataset.host === currentPortalFilter) {
                     btn.classList.remove('bg-gray-800/50', 'text-gray-300', 'hover:bg-gray-700');
@@ -1064,7 +885,7 @@
 
         function openModal(index) {
             currentAccountIndex = index;
-            const acc = allAccounts[index];
+            const acc = allAccounts[currentAccountIndex];
             const isMac = acc._isMac;
             const modal = document.getElementById('detailsModal');
             document.body.style.overflow = 'hidden';
